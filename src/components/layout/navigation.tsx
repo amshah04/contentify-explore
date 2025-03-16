@@ -1,5 +1,5 @@
 
-import { Bell, Home, MessageCircle, PlusSquare, Search, User } from "lucide-react";
+import { Bell, Home, Search, Film, PlusSquare, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
@@ -9,14 +9,14 @@ const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: PlusSquare, label: "Create", path: "/create" },
-  { icon: MessageCircle, label: "Messages", path: "/messages" },
+  { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
 export function Navigation({ className }: { className?: string }) {
   return (
-    <nav className={cn("fixed bottom-0 left-0 z-50 w-full border-t bg-background p-2 md:relative md:border-r md:p-4", className)}>
-      <div className="hidden md:flex md:flex-col md:items-center md:gap-2">
+    <nav className={cn("bg-background", className)}>
+      <div className="hidden md:flex md:flex-col md:items-center md:gap-2 md:p-4">
         <div className="mb-6 flex items-center">
           <h1 className="text-3xl font-bold social-text-gradient">Social</h1>
         </div>
