@@ -8,7 +8,7 @@ import { Link } from "react-router-dom";
 const navItems = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
-  { icon: PlusSquare, label: "Create", path: "/create" },
+  { icon: PlusSquare, label: "Upload", path: "/upload" },
   { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profile", path: "/profile" },
 ];

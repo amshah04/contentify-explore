@@ -12,6 +12,10 @@ import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
 import VideoPlayer from "./pages/VideoPlayer";
 import Reels from "./pages/Reels";
+import Search from "./pages/Search";
+import Messages from "./pages/Messages";
+import Notifications from "./pages/Notifications";
+import Upload from "./pages/Upload";
 
 const queryClient = new QueryClient();
 
@@ -23,13 +27,17 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<Home />} />
             <Route path="/home" element={<Home />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profile/:username" element={<Profile />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/video/:id" element={<VideoPlayer />} />
             <Route path="/reels" element={<Reels />} />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="/search" element={<Search />} />
+            <Route path="/messages" element={<Messages />} />
+            <Route path="/notifications" element={<Notifications />} />
+            <Route path="/upload" element={<Upload />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

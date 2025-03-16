@@ -4,7 +4,6 @@ import { StoriesContainer } from "@/components/stories/stories-container";
 import { PostsContainer } from "@/components/posts/posts-container";
 import { VideosContainer } from "@/components/videos/videos-container";
 import { Layout } from "@/components/layout/layout";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
