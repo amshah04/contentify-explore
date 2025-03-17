@@ -52,10 +52,27 @@ export const useInteractions = () => {
       
       setIsSaved(!!savedData);
       
-      // Get likes count
-      const contentTable = contentType + 's'; // 'post' -> 'posts', etc.
+      // Get likes count based on content type
+      // Map the content type to the appropriate table name
+      let tableName: string;
+      switch (contentType) {
+        case 'post':
+          tableName = 'posts';
+          break;
+        case 'video':
+          tableName = 'videos';
+          break;
+        case 'reel':
+          tableName = 'reels';
+          break;
+        default:
+          console.error('Unsupported content type for likes count');
+          return;
+      }
+      
+      // Use the table name as a string literal for type safety
       const { data, error } = await supabase
-        .from(contentTable)
+        .from(tableName as 'posts' | 'videos' | 'reels')
         .select('likes_count')
         .eq('id', contentId)
         .single();

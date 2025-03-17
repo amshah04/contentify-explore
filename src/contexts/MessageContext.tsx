@@ -103,14 +103,6 @@ export function MessageProvider({ children }: { children: ReactNode }) {
           conversations:conversation_id (
             id,
             created_at
-          ),
-          participants:conversation_id (
-            id,
-            user_id,
-            profiles:user_id (
-              username,
-              avatar_url
-            )
           )
         `)
         .eq('user_id', user.id);
@@ -118,24 +110,48 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       if (error) throw error;
       
       // Transform data to match the Conversation interface
-      const transformedData = data?.map(item => {
-        const conversation = item.conversations as Conversation;
-        conversation.participants = item.participants as Conversation['participants'];
-        return conversation;
-      }) || [];
+      const transformedData: Conversation[] = [];
       
-      // Fetch last message for each conversation
-      for (const conversation of transformedData) {
-        const { data: messageData } = await supabase
+      for (const item of data || []) {
+        const conversation = item.conversations as Omit<Conversation, 'participants' | 'last_message'>;
+        
+        // Fetch participants for this conversation
+        const { data: participantsData, error: participantsError } = await supabase
+          .from('participants')
+          .select(`
+            id,
+            user_id,
+            profiles:user_id (
+              username,
+              avatar_url
+            )
+          `)
+          .eq('conversation_id', conversation.id);
+          
+        if (participantsError) {
+          console.error('Error fetching participants:', participantsError);
+          continue;
+        }
+        
+        const conversationWithParticipants: Conversation = {
+          ...conversation,
+          participants: participantsData || [],
+          last_message: null
+        };
+        
+        // Fetch last message for this conversation
+        const { data: messageData, error: messageError } = await supabase
           .from('messages')
           .select(`
             id,
             content,
             sender_id,
+            conversation_id,
             created_at,
             read_at,
             media_url,
             profiles:sender_id (
+              id,
               username,
               avatar_url
             )
@@ -144,10 +160,12 @@ export function MessageProvider({ children }: { children: ReactNode }) {
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
-        
-        if (messageData) {
-          conversation.last_message = messageData as Message;
+          
+        if (!messageError && messageData) {
+          conversationWithParticipants.last_message = messageData as Message;
         }
+        
+        transformedData.push(conversationWithParticipants);
       }
       
       setConversations(transformedData);
@@ -208,6 +226,7 @@ export function MessageProvider({ children }: { children: ReactNode }) {
           read_at,
           media_url,
           profiles:sender_id (
+            id,
             username,
             avatar_url
           )
@@ -218,16 +237,19 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       
       if (error) throw error;
       
+      // Type assertion to ensure data matches Message[]
+      const typedMessages = (data || []) as unknown as Message[];
+      
       if (page === 1) {
-        setMessages(data.reverse() || []);
+        setMessages(typedMessages.reverse());
       } else {
-        setMessages(prev => [...(data || []).reverse(), ...prev]);
+        setMessages(prev => [...typedMessages.reverse(), ...prev]);
       }
       
       // Mark unread messages as read
-      const unreadMessages = data?.filter(msg => 
+      const unreadMessages = typedMessages.filter(msg => 
         msg.sender_id !== user.id && !msg.read_at
-      ) || [];
+      );
       
       for (const msg of unreadMessages) {
         await markMessageAsRead(msg.id);
