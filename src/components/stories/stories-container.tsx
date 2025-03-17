@@ -1,8 +1,7 @@
 
 import { StoryRing } from "./story-ring";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useState, useRef } from "react";
+import { Plus } from "lucide-react";
 
 // Dummy data for stories
 const storyData = [
@@ -18,34 +17,24 @@ const storyData = [
 
 export function StoriesContainer() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const [showLeftArrow, setShowLeftArrow] = useState(false);
-  const [showRightArrow, setShowRightArrow] = useState(true);
-
-  const handleScroll = () => {
-    if (scrollContainerRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollContainerRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 10);
-    }
-  };
-
-  const scroll = (direction: "left" | "right") => {
-    if (scrollContainerRef.current) {
-      const { clientWidth } = scrollContainerRef.current;
-      const scrollAmount = clientWidth * 0.8;
-      scrollContainerRef.current.scrollBy({
-        left: direction === "left" ? -scrollAmount : scrollAmount,
-        behavior: "smooth",
-      });
-    }
+  const [showUploadOption, setShowUploadOption] = useState(false);
+  
+  const handleUploadStory = () => {
+    // In a real app, this would trigger a story upload flow
+    console.log("Upload story clicked");
+    
+    // Mock notification
+    const event = new CustomEvent("showToast", { 
+      detail: { title: "Upload Story", description: "Story upload functionality would open here" } 
+    });
+    window.dispatchEvent(event);
   };
 
   return (
     <div className="relative mb-6 mt-4">
       <div
         ref={scrollContainerRef}
-        className="flex gap-4 overflow-x-auto pb-2 scrollbar-none"
-        onScroll={handleScroll}
+        className="flex gap-4 overflow-x-auto scrollbar-none pb-2"
       >
         {storyData.map((story) => (
           <StoryRing
@@ -54,31 +43,16 @@ export function StoriesContainer() {
             imageUrl={story.imageUrl}
             viewed={story.viewed}
             className={story.isCurrentUser ? "relative" : ""}
-          />
+            onClick={story.isCurrentUser ? handleUploadStory : undefined}
+          >
+            {story.isCurrentUser && (
+              <div className="absolute bottom-5 right-0 rounded-full bg-primary text-white p-1">
+                <Plus className="h-3 w-3" />
+              </div>
+            )}
+          </StoryRing>
         ))}
       </div>
-
-      {showLeftArrow && (
-        <Button
-          size="icon"
-          variant="secondary"
-          className="absolute left-0 top-8 z-10 h-8 w-8 -translate-y-1/2 rounded-full opacity-80"
-          onClick={() => scroll("left")}
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-      )}
-
-      {showRightArrow && (
-        <Button
-          size="icon"
-          variant="secondary"
-          className="absolute right-0 top-8 z-10 h-8 w-8 -translate-y-1/2 rounded-full opacity-80"
-          onClick={() => scroll("right")}
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
-      )}
     </div>
   );
 }
