@@ -1,129 +1,163 @@
 
-import { useState } from "react";
+import { useEffect } from "react";
 import { Layout } from "@/components/layout/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
-
-// Dummy data for notifications
-const allNotifications = [
-  {
-    id: "1",
-    type: "like",
-    username: "sarah_designs",
-    avatar: "https://i.pravatar.cc/150?img=5",
-    content: "liked your photo",
-    timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5 minutes ago
-    isFollowing: true,
-  },
-  {
-    id: "2",
-    type: "comment",
-    username: "travel_addict",
-    avatar: "https://i.pravatar.cc/150?img=4",
-    content: "commented on your post: \"This is amazing! Where was this taken?\"",
-    timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-    isFollowing: true,
-  },
-  {
-    id: "3",
-    type: "follow",
-    username: "photo_master",
-    avatar: "https://i.pravatar.cc/150?img=13",
-    content: "started following you",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60), // 1 hour ago
-    isFollowing: false,
-  },
-  {
-    id: "4",
-    type: "mention",
-    username: "city_explorer",
-    avatar: "https://i.pravatar.cc/150?img=21",
-    content: "mentioned you in a comment: \"@john_doe check this out!\"",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 3), // 3 hours ago
-    isFollowing: true,
-  },
-  {
-    id: "5",
-    type: "like",
-    username: "nature_lover",
-    avatar: "https://i.pravatar.cc/150?img=3",
-    content: "liked your video",
-    timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12), // 12 hours ago
-    isFollowing: false,
-  }
-];
+import { useNotifications } from "@/hooks/use-notifications";
+import { useAuth } from "@/contexts/AuthContext";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Notifications() {
-  const [activeTab, setActiveTab] = useState<string>("all");
+  const { user } = useAuth();
+  const { 
+    notifications, 
+    isLoading, 
+    fetchNotifications, 
+    markAsRead,
+  } = useNotifications();
   
-  const handleFollow = (username: string) => {
-    // In a real app, this would make an API call to follow the user
-    console.log(`Following ${username}`);
-  };
-  
-  const getNotifications = () => {
-    if (activeTab === "all") {
-      return allNotifications;
-    } else {
-      return allNotifications.filter(notification => notification.type === activeTab);
+  useEffect(() => {
+    if (user) {
+      // Mark all notifications as read when the page loads
+      markAsRead();
     }
+  }, [user]);
+  
+  const getFilteredNotifications = (type?: string) => {
+    if (!type || type === 'all') {
+      return notifications;
+    }
+    return notifications.filter(notification => notification.type === type);
   };
   
-  const displayedNotifications = getNotifications();
+  const handleFollow = async (userId: string) => {
+    // This would be implemented with a hook to follow users
+    console.log(`Following user ${userId}`);
+  };
+
+  if (!user) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto px-4 py-8 text-center">
+          <h1 className="text-2xl font-bold mb-4">Notifications</h1>
+          <p>Please sign in to view your notifications</p>
+          <Button className="mt-4" onClick={() => window.location.href = '/auth'}>
+            Sign In
+          </Button>
+        </div>
+      </Layout>
+    );
+  }
   
   return (
     <Layout>
       <div className="max-w-2xl mx-auto px-4">
         <h1 className="text-2xl font-bold my-4">Notifications</h1>
         
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab} 
-          className="w-full mb-6"
-        >
+        <Tabs defaultValue="all" className="w-full mb-6">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="all">All</TabsTrigger>
             <TabsTrigger value="like">Likes</TabsTrigger>
             <TabsTrigger value="comment">Comments</TabsTrigger>
             <TabsTrigger value="follow">Follows</TabsTrigger>
           </TabsList>
+          
+          <TabsContent value="all" className="mt-4">
+            <NotificationsList 
+              notifications={getFilteredNotifications()} 
+              isLoading={isLoading}
+              onFollow={handleFollow}
+            />
+          </TabsContent>
+          
+          <TabsContent value="like" className="mt-4">
+            <NotificationsList 
+              notifications={getFilteredNotifications('like')} 
+              isLoading={isLoading}
+              onFollow={handleFollow}
+            />
+          </TabsContent>
+          
+          <TabsContent value="comment" className="mt-4">
+            <NotificationsList 
+              notifications={getFilteredNotifications('comment')} 
+              isLoading={isLoading}
+              onFollow={handleFollow}
+            />
+          </TabsContent>
+          
+          <TabsContent value="follow" className="mt-4">
+            <NotificationsList 
+              notifications={getFilteredNotifications('follow')} 
+              isLoading={isLoading}
+              onFollow={handleFollow}
+            />
+          </TabsContent>
         </Tabs>
-        
-        <div className="space-y-4">
-          {displayedNotifications.length > 0 ? (
-            displayedNotifications.map((notification) => (
-              <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50">
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src={notification.avatar} alt={notification.username} />
-                  <AvatarFallback>{notification.username[0]}</AvatarFallback>
-                </Avatar>
-                
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-1">
-                    <span className="font-semibold">{notification.username}</span>
-                    <span>{notification.content}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(notification.timestamp, { addSuffix: true })}
-                  </p>
-                </div>
-                
-                {notification.type === "follow" && !notification.isFollowing && (
-                  <Button size="sm" onClick={() => handleFollow(notification.username)}>
-                    Follow
-                  </Button>
-                )}
-              </div>
-            ))
-          ) : (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">No notifications to show</p>
-            </div>
-          )}
-        </div>
       </div>
     </Layout>
+  );
+}
+
+interface NotificationsListProps {
+  notifications: any[];
+  isLoading: boolean;
+  onFollow: (userId: string) => void;
+}
+
+function NotificationsList({ notifications, isLoading, onFollow }: NotificationsListProps) {
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-start gap-3 p-3 rounded-lg">
+            <Skeleton className="h-10 w-10 rounded-full" />
+            <div className="flex-1">
+              <Skeleton className="h-4 w-3/4 mb-2" />
+              <Skeleton className="h-3 w-1/4" />
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  
+  if (notifications.length === 0) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No notifications to show</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="space-y-4">
+      {notifications.map((notification) => (
+        <div key={notification.id} className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50">
+          <Avatar className="h-10 w-10">
+            <AvatarImage src={notification.actor?.avatar_url} alt={notification.actor?.username} />
+            <AvatarFallback>{notification.actor?.username?.[0] || 'U'}</AvatarFallback>
+          </Avatar>
+          
+          <div className="flex-1">
+            <div className="flex flex-wrap gap-1">
+              <span className="font-semibold">{notification.actor?.username || 'Someone'}</span>
+              <span>{notification.content}</span>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {formatDistanceToNow(new Date(notification.created_at), { addSuffix: true })}
+            </p>
+          </div>
+          
+          {notification.type === "follow" && notification.actor?.id && (
+            <Button size="sm" onClick={() => onFollow(notification.actor.id)}>
+              Follow
+            </Button>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
