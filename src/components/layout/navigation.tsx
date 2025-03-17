@@ -1,5 +1,5 @@
 
-import { Bell, Home, Search, Film, PlusSquare, User, LogOut, LogIn } from "lucide-react";
+import { Home, Search, Film, PlusSquare, User, LogOut, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ export function Navigation({ className }: { className?: string }) {
     { icon: Search, label: "Search", path: "/search" },
     { icon: PlusSquare, label: "Upload", path: "/upload" },
     { icon: Film, label: "Reels", path: "/reels" },
-    { icon: Bell, label: "Notifications", path: "/notifications" },
     { icon: User, label: "Profile", path: "/profile" },
   ];
 
