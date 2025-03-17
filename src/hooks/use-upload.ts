@@ -42,14 +42,14 @@ export const useUpload = () => {
         .upload(filePath, file, {
           cacheControl: '3600',
           upsert: false,
-          onUploadProgress: (progress) => {
-            setProgress(Math.round((progress.loaded / progress.total) * 100));
-          },
         });
 
       if (uploadError) {
         throw uploadError;
       }
+
+      // Simulate progress since onUploadProgress is not supported
+      setProgress(100);
 
       // Get the public URL
       const { data: urlData } = supabase.storage

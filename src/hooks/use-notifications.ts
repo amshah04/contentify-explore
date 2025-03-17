@@ -3,16 +3,22 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
+export interface NotificationActor {
+  username: string;
+  avatar_url: string;
+}
+
 export interface Notification {
   id: string;
   type: string;
   content: string;
   created_at: string;
   read_at: string | null;
-  actor: {
-    username: string;
-    avatar_url: string;
-  } | null;
+  actor: NotificationActor | null;
+  actor_id?: string;
+  reference_id?: string;
+  reference_type?: string;
+  user_id?: string;
 }
 
 export const useNotifications = () => {
@@ -71,10 +77,31 @@ export const useNotifications = () => {
         throw error;
       }
       
-      setNotifications(data || []);
+      // Transform data to match the Notification interface
+      const transformedData = data?.map(item => {
+        // Handle case where actor relation doesn't exist
+        const actor = typeof item.actor === 'object' && item.actor !== null 
+          ? item.actor 
+          : null;
+        
+        return {
+          id: item.id,
+          type: item.type,
+          content: item.content,
+          created_at: item.created_at,
+          read_at: item.read_at,
+          actor,
+          actor_id: item.actor_id,
+          reference_id: item.reference_id,
+          reference_type: item.reference_type,
+          user_id: item.user_id
+        } as Notification;
+      }) || [];
+      
+      setNotifications(transformedData);
       
       // Count unread notifications
-      const unread = data?.filter(n => !n.read_at).length || 0;
+      const unread = transformedData?.filter(n => !n.read_at).length || 0;
       setUnreadCount(unread);
     } catch (error) {
       console.error('Error fetching notifications:', error);

@@ -9,10 +9,19 @@ import { toast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
+interface StoryData {
+  id: string;
+  username: string;
+  imageUrl: string;
+  viewed: boolean;
+  isCurrentUser?: boolean;
+  story?: any;
+}
+
 export function StoriesContainer() {
   const { user, profile } = useAuth();
   const { uploadFile, isUploading, progress } = useUpload();
-  const [stories, setStories] = useState([]);
+  const [stories, setStories] = useState<any[]>([]);
   const [showUploadOption, setShowUploadOption] = useState(false);
   const [storyFile, setStoryFile] = useState<File | null>(null);
   const [storyPreview, setStoryPreview] = useState<string | null>(null);
@@ -117,7 +126,7 @@ export function StoriesContainer() {
   };
   
   // Prepare stories data
-  const storyData = [
+  const storyData: StoryData[] = [
     // Current user story (for adding)
     ...(user ? [{
       id: "current-user",
@@ -132,7 +141,8 @@ export function StoriesContainer() {
       username: story.profiles?.username || "user",
       imageUrl: story.profiles?.avatar_url || "https://i.pravatar.cc/150?img=2",
       viewed: false,
-      story: story
+      story: story,
+      isCurrentUser: false
     })))
   ];
   
@@ -144,6 +154,7 @@ export function StoriesContainer() {
         username: `user_${i}`,
         imageUrl: `https://i.pravatar.cc/150?img=${i + 2}`,
         viewed: Math.random() > 0.5,
+        isCurrentUser: false
       });
     }
   }

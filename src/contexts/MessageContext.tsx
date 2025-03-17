@@ -1,9 +1,15 @@
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
+import { toast } from '@/hooks/use-toast';
 
-interface Message {
+export interface MessageUser {
+  username: string;
+  avatar_url: string;
+}
+
+export interface Message {
   id: string;
   content: string;
   media_url: string | null;
@@ -11,51 +17,49 @@ interface Message {
   conversation_id: string;
   created_at: string;
   read_at: string | null;
-  sender?: {
-    username: string;
-    avatar_url: string;
-  };
+  sender: MessageUser | null;
 }
 
-interface Conversation {
+export interface Participant {
   id: string;
-  participants: {
-    id: string;
-    user_id: string;
-    user?: {
-      username: string;
-      avatar_url: string;
-    };
-  }[];
-  last_message?: Message;
-  unread_count?: number;
+  user_id: string;
+  user?: MessageUser;
+}
+
+export interface Conversation {
+  id: string;
+  participants: Participant[];
+  last_message?: {
+    content: string;
+    created_at: string;
+    sender_id: string;
+  };
+  unread_count: number;
 }
 
 interface MessageContextType {
   conversations: Conversation[];
-  activeConversation: Conversation | null;
+  currentConversation: Conversation | null;
   messages: Message[];
-  loadingConversations: boolean;
-  loadingMessages: boolean;
-  setActiveConversation: (conversation: Conversation | null) => void;
+  isLoadingMessages: boolean;
+  isLoadingConversations: boolean;
   fetchConversations: () => Promise<void>;
   fetchMessages: (conversationId: string) => Promise<void>;
-  sendMessage: (conversationId: string, content: string, mediaUrl?: string) => Promise<boolean>;
-  createConversation: (participantIds: string[]) => Promise<Conversation | null>;
-  markAsRead: (conversationId: string) => Promise<void>;
-  unreadCount: number;
+  sendMessage: (conversationId: string, content: string, mediaUrl?: string) => Promise<void>;
+  createConversation: (userIds: string[]) => Promise<string | null>;
+  setCurrentConversation: (conversation: Conversation | null) => void;
+  markConversationAsRead: (conversationId: string) => Promise<void>;
 }
 
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
-export function MessageProvider({ children }: { children: ReactNode }) {
+export const MessageProvider = ({ children }: { children: ReactNode }) => {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [activeConversation, setActiveConversation] = useState<Conversation | null>(null);
+  const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [loadingConversations, setLoadingConversations] = useState(false);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -72,15 +76,15 @@ export function MessageProvider({ children }: { children: ReactNode }) {
             table: 'messages',
           },
           (payload) => {
-            const newMessage = payload.new as Message;
+            const newMessage = payload.new as any;
             
-            // If the message is for the active conversation, add it to the messages list
-            if (activeConversation && newMessage.conversation_id === activeConversation.id) {
-              setMessages(prevMessages => [...prevMessages, newMessage]);
+            // Check if this message belongs to the current conversation
+            if (currentConversation && newMessage.conversation_id === currentConversation.id) {
+              fetchMessages(currentConversation.id);
               
-              // If the message is not from the current user, mark it as read
+              // Mark as read if it's not from the current user
               if (newMessage.sender_id !== user.id) {
-                markAsRead(newMessage.conversation_id);
+                markMessageAsRead(newMessage.id);
               }
             }
             
@@ -94,135 +98,110 @@ export function MessageProvider({ children }: { children: ReactNode }) {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, activeConversation]);
+  }, [user, currentConversation]);
 
   const fetchConversations = async () => {
     if (!user) return;
     
-    setLoadingConversations(true);
+    setIsLoadingConversations(true);
     try {
       // Get conversations where the user is a participant
       const { data: participantsData, error: participantsError } = await supabase
         .from('participants')
         .select(`
-          conversation_id,
-          conversations:conversation_id (
-            id,
-            created_at
-          )
+          conversation_id
         `)
         .eq('user_id', user.id);
       
-      if (participantsError) throw participantsError;
+      if (participantsError) {
+        throw participantsError;
+      }
       
       if (!participantsData || participantsData.length === 0) {
         setConversations([]);
-        setLoadingConversations(false);
+        setIsLoadingConversations(false);
         return;
       }
       
-      // Get the conversation IDs
       const conversationIds = participantsData.map(p => p.conversation_id);
       
-      // For each conversation, get the participants
-      const conversationsWithParticipants = await Promise.all(
-        conversationIds.map(async (conversationId) => {
-          // Get participants
-          const { data: participants, error: participantsError } = await supabase
-            .from('participants')
-            .select(`
-              id,
-              user_id,
-              user:user_id (
-                username,
-                avatar_url
-              )
-            `)
-            .eq('conversation_id', conversationId);
-          
-          if (participantsError) throw participantsError;
-          
-          // Get the last message
-          const { data: lastMessages, error: lastMessageError } = await supabase
-            .from('messages')
-            .select(`
-              id,
-              content,
-              media_url,
-              sender_id,
-              created_at,
-              read_at,
-              sender:sender_id (
-                username,
-                avatar_url
-              )
-            `)
-            .eq('conversation_id', conversationId)
-            .order('created_at', { ascending: false })
-            .limit(1);
-          
-          if (lastMessageError) throw lastMessageError;
-          
-          // Count unread messages
-          const { count, error: countError } = await supabase
-            .from('messages')
-            .select('id', { count: 'exact' })
-            .eq('conversation_id', conversationId)
-            .eq('sender_id', user.id, { negate: true })
-            .is('read_at', null);
-          
-          if (countError) throw countError;
-          
-          return {
-            id: conversationId,
-            participants: participants || [],
-            last_message: lastMessages && lastMessages.length > 0 ? lastMessages[0] : undefined,
-            unread_count: count || 0,
-          };
-        })
-      );
+      // Get conversation details with participants and last message
+      const { data: conversationsData, error: conversationsError } = await supabase
+        .from('conversations')
+        .select(`
+          id,
+          participants (
+            id,
+            user_id,
+            profiles:user_id (
+              username,
+              avatar_url
+            )
+          )
+        `)
+        .in('id', conversationIds);
       
-      setConversations(conversationsWithParticipants);
-      
-      // Calculate total unread messages
-      const totalUnread = conversationsWithParticipants.reduce(
-        (sum, conv) => sum + (conv.unread_count || 0), 
-        0
-      );
-      setUnreadCount(totalUnread);
-      
-      // Update active conversation if needed
-      if (activeConversation) {
-        const updatedActiveConversation = conversationsWithParticipants.find(
-          c => c.id === activeConversation.id
-        );
-        if (updatedActiveConversation) {
-          setActiveConversation(updatedActiveConversation);
-        }
+      if (conversationsError) {
+        throw conversationsError;
       }
+      
+      // Format conversations and add last messages
+      const formattedConversations: Conversation[] = [];
+      
+      for (const conv of (conversationsData || [])) {
+        // Get last message
+        const { data: lastMessageData } = await supabase
+          .from('messages')
+          .select('id, content, created_at, sender_id')
+          .eq('conversation_id', conv.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        // Get unread count
+        const { count: unreadCount } = await supabase
+          .from('messages')
+          .select('id', { count: 'exact', head: true })
+          .eq('conversation_id', conv.id)
+          .eq('sender_id', user.id, true) // Not from current user
+          .is('read_at', null);
+        
+        // Format participants with proper typing
+        const participants = conv.participants.map((p: any) => ({
+          id: p.id,
+          user_id: p.user_id,
+          user: p.profiles ? {
+            username: p.profiles.username,
+            avatar_url: p.profiles.avatar_url
+          } : undefined
+        }));
+        
+        formattedConversations.push({
+          id: conv.id,
+          participants: participants,
+          last_message: lastMessageData,
+          unread_count: unreadCount || 0
+        });
+      }
+      
+      setConversations(formattedConversations);
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
-      setLoadingConversations(false);
+      setIsLoadingConversations(false);
     }
   };
 
   const fetchMessages = async (conversationId: string) => {
-    if (!user || !conversationId) return;
+    if (!user) return;
     
-    setLoadingMessages(true);
+    setIsLoadingMessages(true);
     try {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          id,
-          content,
-          media_url,
-          sender_id,
-          conversation_id,
-          created_at,
-          read_at,
-          sender:sender_id (
+          *,
+          profiles:sender_id (
             username,
             avatar_url
           )
@@ -230,133 +209,208 @@ export function MessageProvider({ children }: { children: ReactNode }) {
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: true });
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      setMessages(data || []);
+      // Transform data to match the Message interface
+      const transformedMessages = data?.map(msg => {
+        // Handle case where sender relation might not exist
+        const sender = msg.profiles && typeof msg.profiles === 'object' 
+          ? {
+              username: msg.profiles.username,
+              avatar_url: msg.profiles.avatar_url
+            }
+          : null;
+        
+        return {
+          id: msg.id,
+          content: msg.content,
+          media_url: msg.media_url,
+          sender_id: msg.sender_id,
+          conversation_id: msg.conversation_id,
+          created_at: msg.created_at,
+          read_at: msg.read_at,
+          sender
+        } as Message;
+      }) || [];
       
-      // Mark messages as read
-      await markAsRead(conversationId);
+      setMessages(transformedMessages);
+      
+      // Mark unread messages as read if they're not from the current user
+      const unreadMessages = transformedMessages.filter(
+        msg => !msg.read_at && msg.sender_id !== user.id
+      );
+      
+      if (unreadMessages.length > 0) {
+        await Promise.all(
+          unreadMessages.map(msg => markMessageAsRead(msg.id))
+        );
+      }
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
-      setLoadingMessages(false);
+      setIsLoadingMessages(false);
     }
   };
-  
-  const sendMessage = async (conversationId: string, content: string, mediaUrl?: string) => {
-    if (!user || !conversationId || (!content && !mediaUrl)) return false;
-    
-    try {
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content,
-          media_url: mediaUrl,
-        });
-      
-      if (error) throw error;
-      
-      return true;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      return false;
-    }
+
+  const markMessageAsRead = async (messageId: string) => {
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', messageId);
   };
-  
-  const createConversation = async (participantIds: string[]) => {
-    if (!user) return null;
-    
-    // Make sure the current user is included
-    if (!participantIds.includes(user.id)) {
-      participantIds.push(user.id);
-    }
-    
-    try {
-      // Create a new conversation
-      const { data: conversationData, error: conversationError } = await supabase
-        .from('conversations')
-        .insert({})
-        .select()
-        .single();
-      
-      if (conversationError) throw conversationError;
-      
-      // Add participants
-      const participantsToInsert = participantIds.map(userId => ({
-        conversation_id: conversationData.id,
-        user_id: userId,
-      }));
-      
-      const { error: participantsError } = await supabase
-        .from('participants')
-        .insert(participantsToInsert);
-      
-      if (participantsError) throw participantsError;
-      
-      // Fetch the conversation with participants
-      await fetchConversations();
-      
-      // Find and return the newly created conversation
-      const newConversation = conversations.find(c => c.id === conversationData.id);
-      return newConversation || null;
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      return null;
-    }
-  };
-  
-  const markAsRead = async (conversationId: string) => {
-    if (!user || !conversationId) return;
+
+  const markConversationAsRead = async (conversationId: string) => {
+    if (!user) return;
     
     try {
       await supabase
         .from('messages')
         .update({ read_at: new Date().toISOString() })
         .eq('conversation_id', conversationId)
-        .eq('sender_id', user.id, { negate: true })
+        .eq('sender_id', user.id, true) // Not from current user
         .is('read_at', null);
       
-      // Update unread count locally
-      setConversations(prevConversations => 
-        prevConversations.map(conv => 
-          conv.id === conversationId 
-            ? { ...conv, unread_count: 0 } 
+      // Update local state
+      setConversations(prev =>
+        prev.map(conv =>
+          conv.id === conversationId
+            ? { ...conv, unread_count: 0 }
             : conv
         )
       );
-      
-      // Recalculate total unread
-      const totalUnread = conversations.reduce(
-        (sum, conv) => conv.id !== conversationId 
-          ? sum + (conv.unread_count || 0)
-          : sum, 
-        0
-      );
-      setUnreadCount(totalUnread);
     } catch (error) {
-      console.error('Error marking messages as read:', error);
+      console.error('Error marking conversation as read:', error);
     }
   };
 
-  const value = {
-    conversations,
-    activeConversation,
-    messages,
-    loadingConversations,
-    loadingMessages,
-    setActiveConversation,
-    fetchConversations,
-    fetchMessages,
-    sendMessage,
-    createConversation,
-    markAsRead,
-    unreadCount,
+  const sendMessage = async (conversationId: string, content: string, mediaUrl?: string) => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .insert({
+          conversation_id: conversationId,
+          sender_id: user.id,
+          content,
+          media_url: mediaUrl || null
+        })
+        .select();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive',
+      });
+    }
   };
 
-  return <MessageContext.Provider value={value}>{children}</MessageContext.Provider>;
-}
+  const createConversation = async (userIds: string[]): Promise<string | null> => {
+    if (!user) return null;
+    
+    // Make sure current user is included and each user appears only once
+    const participantIds = [...new Set([user.id, ...userIds])];
+    
+    try {
+      // First check if the conversation already exists with exactly these participants
+      // This is a simplification and won't work for group chats with the same participants
+      if (participantIds.length === 2) {
+        // For 1:1 conversations
+        const { data: existingParticipants } = await supabase
+          .from('participants')
+          .select('conversation_id')
+          .in('user_id', participantIds);
+        
+        if (existingParticipants && existingParticipants.length >= 2) {
+          const conversationCounts = existingParticipants.reduce((acc, p) => {
+            acc[p.conversation_id] = (acc[p.conversation_id] || 0) + 1;
+            return acc;
+          }, {} as Record<string, number>);
+          
+          // Find conversation that has exactly these participants
+          for (const [convId, count] of Object.entries(conversationCounts)) {
+            if (count === 2) {
+              // Verify this conversation has exactly 2 participants
+              const { count: actualCount } = await supabase
+                .from('participants')
+                .select('id', { count: 'exact', head: true })
+                .eq('conversation_id', convId);
+              
+              if (actualCount === 2) {
+                // This is a match, return the existing conversation
+                return convId;
+              }
+            }
+          }
+        }
+      }
+      
+      // Create new conversation
+      const { data: conversationData, error: conversationError } = await supabase
+        .from('conversations')
+        .insert({})
+        .select()
+        .single();
+      
+      if (conversationError) {
+        throw conversationError;
+      }
+      
+      // Add participants
+      const participantsToInsert = participantIds.map(userId => ({
+        conversation_id: conversationData.id,
+        user_id: userId
+      }));
+      
+      const { error: participantsError } = await supabase
+        .from('participants')
+        .insert(participantsToInsert);
+      
+      if (participantsError) {
+        throw participantsError;
+      }
+      
+      return conversationData.id;
+    } catch (error) {
+      console.error('Error creating conversation:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to create conversation',
+        variant: 'destructive',
+      });
+      return null;
+    }
+  };
+
+  return (
+    <MessageContext.Provider
+      value={{
+        conversations,
+        currentConversation,
+        messages,
+        isLoadingMessages,
+        isLoadingConversations,
+        fetchConversations,
+        fetchMessages,
+        sendMessage,
+        createConversation,
+        setCurrentConversation,
+        markConversationAsRead,
+      }}
+    >
+      {children}
+    </MessageContext.Provider>
+  );
+};
 
 export const useMessages = () => {
   const context = useContext(MessageContext);
