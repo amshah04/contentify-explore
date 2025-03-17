@@ -14,6 +14,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -23,6 +25,8 @@ const formSchema = z.object({
 export function LoginForm() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const { signIn } = useAuth();
+  const navigate = useNavigate();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -32,21 +36,21 @@ export function LoginForm() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      console.log(values);
-      setIsLoading(false);
-      
+    try {
+      await signIn(values.email, values.password);
+      // Navigation is handled in AuthContext after successful login
+    } catch (error: any) {
       toast({
-        title: "Login Successful",
-        description: "Welcome back to Social!",
+        title: "Login Failed",
+        description: error.message || "Please check your credentials and try again",
+        variant: "destructive",
       });
-      
-      // In a real app, we'd handle authentication here
-    }, 1500);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   return (

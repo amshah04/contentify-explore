@@ -1,24 +1,38 @@
 
-import { Bell, Home, Search, Film, PlusSquare, User } from "lucide-react";
+import { Bell, Home, Search, Film, PlusSquare, User, LogOut, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModeToggle } from "@/components/mode-toggle";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-
-const navItems = [
-  { icon: Home, label: "Home", path: "/" },
-  { icon: Search, label: "Search", path: "/search" },
-  { icon: PlusSquare, label: "Upload", path: "/upload" },
-  { icon: Film, label: "Reels", path: "/reels" },
-  { icon: User, label: "Profile", path: "/profile" },
-];
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Navigation({ className }: { className?: string }) {
+  const { user, signOut } = useAuth();
+  
+  const navItems = [
+    { icon: Home, label: "Home", path: "/" },
+    { icon: Search, label: "Search", path: "/search" },
+    { icon: PlusSquare, label: "Upload", path: "/upload" },
+    { icon: Film, label: "Reels", path: "/reels" },
+    { icon: Bell, label: "Notifications", path: "/notifications" },
+    { icon: User, label: "Profile", path: "/profile" },
+  ];
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error signing out:", error);
+    }
+  };
+
   return (
     <nav className={cn("bg-background", className)}>
       <div className="hidden md:flex md:flex-col md:items-center md:gap-2 md:p-4">
         <div className="mb-6 flex items-center">
-          <h1 className="text-3xl font-bold social-text-gradient">Social</h1>
+          <Link to="/">
+            <h1 className="text-3xl font-bold social-text-gradient">Social</h1>
+          </Link>
         </div>
         <div className="flex flex-col gap-2">
           {navItems.map((item) => (
@@ -32,8 +46,28 @@ export function Navigation({ className }: { className?: string }) {
             </Link>
           ))}
         </div>
-        <div className="mt-auto">
+        <div className="mt-auto space-y-2">
           <ModeToggle />
+          {user ? (
+            <Button 
+              variant="outline" 
+              className="w-full flex items-center gap-2"
+              onClick={handleSignOut}
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign Out</span>
+            </Button>
+          ) : (
+            <Link to="/auth">
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center gap-2"
+              >
+                <LogIn className="h-4 w-4" />
+                <span>Sign In</span>
+              </Button>
+            </Link>
+          )}
         </div>
       </div>
       

@@ -1,203 +1,188 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from './use-toast';
+
+type ContentType = 'post' | 'video' | 'reel' | 'comment';
+
+interface InteractionOptions {
+  contentId: string;
+  contentType: ContentType;
+  userId: string;
+}
 
 export const useInteractions = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
+  const [isLiked, setIsLiked] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const toggleLike = async (userId: string, contentId: string, contentType: string) => {
-    if (!userId) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to like content',
-        variant: 'destructive',
-      });
-      return null;
-    }
-
-    setIsSubmitting(true);
+  const checkInteractionStatus = async ({ contentId, contentType, userId }: InteractionOptions) => {
+    setIsLoading(true);
     try {
-      // Check if user already liked this content
-      const { data: existingLike } = await supabase
+      // Check if content is liked
+      const { data: likeData, error: likeError } = await supabase
         .from('likes')
         .select('id')
-        .eq('user_id', userId)
         .eq('content_id', contentId)
         .eq('content_type', contentType)
+        .eq('user_id', userId)
         .single();
+      
+      if (likeError && likeError.code !== 'PGRST116') {
+        console.error('Error checking like status:', likeError);
+      }
+      
+      setIsLiked(!!likeData);
+      
+      // Check if content is saved
+      const { data: savedData, error: savedError } = await supabase
+        .from('saved_content')
+        .select('id')
+        .eq('content_id', contentId)
+        .eq('content_type', contentType)
+        .eq('user_id', userId)
+        .single();
+      
+      if (savedError && savedError.code !== 'PGRST116') {
+        console.error('Error checking saved status:', savedError);
+      }
+      
+      setIsSaved(!!savedData);
+      
+      // Get likes count
+      const contentTable = contentType + 's'; // 'post' -> 'posts', etc.
+      const { data, error } = await supabase
+        .from(contentTable)
+        .select('likes_count')
+        .eq('id', contentId)
+        .single();
+      
+      if (error) {
+        console.error(`Error fetching likes count for ${contentType}:`, error);
+      } else if (data) {
+        setLikesCount(data.likes_count || 0);
+      }
+    } catch (error) {
+      console.error('Error checking interaction status:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (existingLike) {
-        // Unlike
-        await supabase
+  const toggleLike = async ({ contentId, contentType, userId }: InteractionOptions) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to like content',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    try {
+      if (isLiked) {
+        // Unlike content
+        const { error } = await supabase
           .from('likes')
           .delete()
-          .eq('id', existingLike.id);
+          .eq('content_id', contentId)
+          .eq('content_type', contentType)
+          .eq('user_id', userId);
         
-        return { liked: false };
+        if (error) throw error;
+        
+        setIsLiked(false);
+        setLikesCount((prev) => Math.max(0, prev - 1));
       } else {
-        // Like
-        await supabase
+        // Like content
+        const { error } = await supabase
           .from('likes')
           .insert({
-            user_id: userId,
             content_id: contentId,
             content_type: contentType,
+            user_id: userId,
           });
         
-        // Create notification for the content owner
-        // First, get the content owner id
-        const contentTable = getContentTableName(contentType);
-        const { data: contentData } = await supabase
-          .from(contentTable)
-          .select('user_id')
-          .eq('id', contentId)
-          .single();
+        if (error) throw error;
         
-        if (contentData && contentData.user_id !== userId) {
-          // Create notification
-          await supabase
-            .from('notifications')
-            .insert({
-              user_id: contentData.user_id,
-              actor_id: userId,
-              type: 'like',
-              content: `liked your ${contentType.slice(0, -1)}`,
-              reference_id: contentId,
-              reference_type: contentType,
-            });
-        }
-        
-        return { liked: true };
+        setIsLiked(true);
+        setLikesCount((prev) => prev + 1);
       }
     } catch (error) {
       console.error('Error toggling like:', error);
       toast({
         title: 'Error',
-        description: 'Failed to process your action',
+        description: 'Could not complete the action',
         variant: 'destructive',
       });
-      return null;
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
-  const getContentTableName = (contentType: string): string => {
-    switch (contentType) {
-      case 'posts': return 'posts';
-      case 'videos': return 'videos';
-      case 'reels': return 'reels';
-      case 'stories': return 'stories';
-      default: return 'posts';
+  const toggleSave = async ({ contentId, contentType, userId }: InteractionOptions) => {
+    if (!user) {
+      toast({
+        title: 'Authentication required',
+        description: 'Please sign in to save content',
+        variant: 'destructive',
+      });
+      return;
     }
-  };
-
-  const checkIfLiked = async (userId: string, contentId: string, contentType: string) => {
-    if (!userId) return false;
     
     try {
-      const { data } = await supabase
-        .from('likes')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('content_id', contentId)
-        .eq('content_type', contentType)
-        .single();
-      
-      return !!data;
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const saveContent = async (userId: string, contentId: string, contentType: string) => {
-    if (!userId) {
-      toast({
-        title: 'Error',
-        description: 'You must be logged in to save content',
-        variant: 'destructive',
-      });
-      return null;
-    }
-
-    setIsSubmitting(true);
-    try {
-      // Check if user already saved this content
-      const { data: existingSave } = await supabase
-        .from('saved_content')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('content_id', contentId)
-        .eq('content_type', contentType)
-        .single();
-
-      if (existingSave) {
-        // Unsave
-        await supabase
+      if (isSaved) {
+        // Unsave content
+        const { error } = await supabase
           .from('saved_content')
           .delete()
-          .eq('id', existingSave.id);
+          .eq('content_id', contentId)
+          .eq('content_type', contentType)
+          .eq('user_id', userId);
         
+        if (error) throw error;
+        
+        setIsSaved(false);
         toast({
           title: 'Removed from saved',
-          description: `The ${contentType.slice(0, -1)} has been removed from your saved items`,
+          description: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} removed from your saved items`,
         });
-        
-        return { saved: false };
       } else {
-        // Save
-        await supabase
+        // Save content
+        const { error } = await supabase
           .from('saved_content')
           .insert({
-            user_id: userId,
             content_id: contentId,
             content_type: contentType,
+            user_id: userId,
           });
         
+        if (error) throw error;
+        
+        setIsSaved(true);
         toast({
           title: 'Saved',
-          description: `The ${contentType.slice(0, -1)} has been saved to your collection`,
+          description: `${contentType.charAt(0).toUpperCase() + contentType.slice(1)} saved to your collection`,
         });
-        
-        return { saved: true };
       }
     } catch (error) {
-      console.error('Error saving content:', error);
+      console.error('Error toggling save:', error);
       toast({
         title: 'Error',
-        description: 'Failed to process your action',
+        description: 'Could not complete the action',
         variant: 'destructive',
       });
-      return null;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const checkIfSaved = async (userId: string, contentId: string, contentType: string) => {
-    if (!userId) return false;
-    
-    try {
-      const { data } = await supabase
-        .from('saved_content')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('content_id', contentId)
-        .eq('content_type', contentType)
-        .single();
-      
-      return !!data;
-    } catch (error) {
-      return false;
     }
   };
 
   return {
+    isLiked,
+    isSaved,
+    likesCount,
+    isLoading,
+    checkInteractionStatus,
     toggleLike,
-    checkIfLiked,
-    saveContent,
-    checkIfSaved,
-    isSubmitting,
+    toggleSave,
   };
 };

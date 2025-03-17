@@ -1,66 +1,70 @@
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from './AuthContext';
-import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { formatDistanceToNow } from 'date-fns';
 
-export interface MessageUser {
-  username: string;
-  avatar_url: string;
+interface Profile {
+  id: string;
+  username?: string;
+  avatar_url?: string;
 }
 
 export interface Message {
   id: string;
-  content: string;
-  media_url: string | null;
+  content?: string;
   sender_id: string;
   conversation_id: string;
   created_at: string;
   read_at: string | null;
-  sender: MessageUser | null;
-}
-
-export interface Participant {
-  id: string;
-  user_id: string;
-  user?: MessageUser;
+  media_url?: string | null;
+  profiles?: Profile | null;
 }
 
 export interface Conversation {
   id: string;
-  participants: Participant[];
-  last_message?: {
-    content: string;
-    created_at: string;
-    sender_id: string;
-  };
-  unread_count: number;
+  created_at: string;
+  participants: {
+    id: string;
+    user_id: string;
+    profiles?: {
+      username?: string;
+      avatar_url?: string;
+    } | null;
+  }[];
+  last_message?: Message | null;
 }
 
 interface MessageContextType {
   conversations: Conversation[];
   currentConversation: Conversation | null;
   messages: Message[];
-  isLoadingMessages: boolean;
-  isLoadingConversations: boolean;
-  fetchConversations: () => Promise<void>;
-  fetchMessages: (conversationId: string) => Promise<void>;
-  sendMessage: (conversationId: string, content: string, mediaUrl?: string) => Promise<void>;
-  createConversation: (userIds: string[]) => Promise<string | null>;
-  setCurrentConversation: (conversation: Conversation | null) => void;
-  markConversationAsRead: (conversationId: string) => Promise<void>;
+  loadingConversations: boolean;
+  loadingMessages: boolean;
+  selectedUserId: string | null;
+  setSelectedUserId: (userId: string | null) => void;
+  startConversation: (userId: string) => Promise<string | null>;
+  selectConversation: (conversationId: string) => void;
+  sendMessage: (content: string, mediaUrl?: string) => Promise<void>;
+  fetchMoreMessages: () => Promise<void>;
+  resetState: () => void;
 }
 
 const MessageContext = createContext<MessageContextType | undefined>(undefined);
 
-export const MessageProvider = ({ children }: { children: ReactNode }) => {
+export function MessageProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
-  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [loadingConversations, setLoadingConversations] = useState(true);
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [messagesPage, setMessagesPage] = useState(1);
+  const messagesPerPage = 20;
 
+  // Fetch conversations
   useEffect(() => {
     if (user) {
       fetchConversations();
@@ -76,20 +80,7 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
             table: 'messages',
           },
           (payload) => {
-            const newMessage = payload.new as any;
-            
-            // Check if this message belongs to the current conversation
-            if (currentConversation && newMessage.conversation_id === currentConversation.id) {
-              fetchMessages(currentConversation.id);
-              
-              // Mark as read if it's not from the current user
-              if (newMessage.sender_id !== user.id) {
-                markMessageAsRead(newMessage.id);
-              }
-            }
-            
-            // Update conversations list to show latest message
-            fetchConversations();
+            handleNewMessage(payload.new as Message);
           }
         )
         .subscribe();
@@ -98,39 +89,22 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         supabase.removeChannel(channel);
       };
     }
-  }, [user, currentConversation]);
+  }, [user]);
 
   const fetchConversations = async () => {
     if (!user) return;
     
-    setIsLoadingConversations(true);
+    setLoadingConversations(true);
     try {
-      // Get conversations where the user is a participant
-      const { data: participantsData, error: participantsError } = await supabase
+      const { data, error } = await supabase
         .from('participants')
         .select(`
-          conversation_id
-        `)
-        .eq('user_id', user.id);
-      
-      if (participantsError) {
-        throw participantsError;
-      }
-      
-      if (!participantsData || participantsData.length === 0) {
-        setConversations([]);
-        setIsLoadingConversations(false);
-        return;
-      }
-      
-      const conversationIds = participantsData.map(p => p.conversation_id);
-      
-      // Get conversation details with participants and last message
-      const { data: conversationsData, error: conversationsError } = await supabase
-        .from('conversations')
-        .select(`
-          id,
-          participants (
+          conversation_id,
+          conversations:conversation_id (
+            id,
+            created_at
+          ),
+          participants:conversation_id (
             id,
             user_id,
             profiles:user_id (
@@ -139,256 +113,253 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
             )
           )
         `)
-        .in('id', conversationIds);
+        .eq('user_id', user.id);
       
-      if (conversationsError) {
-        throw conversationsError;
-      }
+      if (error) throw error;
       
-      // Format conversations and add last messages
-      const formattedConversations: Conversation[] = [];
+      // Transform data to match the Conversation interface
+      const transformedData = data?.map(item => {
+        const conversation = item.conversations as Conversation;
+        conversation.participants = item.participants as Conversation['participants'];
+        return conversation;
+      }) || [];
       
-      for (const conv of (conversationsData || [])) {
-        // Get last message
-        const { data: lastMessageData } = await supabase
+      // Fetch last message for each conversation
+      for (const conversation of transformedData) {
+        const { data: messageData } = await supabase
           .from('messages')
-          .select('id, content, created_at, sender_id')
-          .eq('conversation_id', conv.id)
+          .select(`
+            id,
+            content,
+            sender_id,
+            created_at,
+            read_at,
+            media_url,
+            profiles:sender_id (
+              username,
+              avatar_url
+            )
+          `)
+          .eq('conversation_id', conversation.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
         
-        // Get unread count
-        const { count: unreadCount } = await supabase
-          .from('messages')
-          .select('id', { count: 'exact', head: true })
-          .eq('conversation_id', conv.id)
-          .eq('sender_id', user.id, true) // Not from current user
-          .is('read_at', null);
-        
-        // Format participants with proper typing
-        const participants = conv.participants.map((p: any) => ({
-          id: p.id,
-          user_id: p.user_id,
-          user: p.profiles ? {
-            username: p.profiles.username,
-            avatar_url: p.profiles.avatar_url
-          } : undefined
-        }));
-        
-        formattedConversations.push({
-          id: conv.id,
-          participants: participants,
-          last_message: lastMessageData,
-          unread_count: unreadCount || 0
-        });
+        if (messageData) {
+          conversation.last_message = messageData as Message;
+        }
       }
       
-      setConversations(formattedConversations);
+      setConversations(transformedData);
     } catch (error) {
       console.error('Error fetching conversations:', error);
     } finally {
-      setIsLoadingConversations(false);
+      setLoadingConversations(false);
     }
   };
-
-  const fetchMessages = async (conversationId: string) => {
+  
+  const handleNewMessage = (newMessage: Message) => {
+    // Check if message belongs to current conversation
+    if (currentConversation && newMessage.conversation_id === currentConversation.id) {
+      setMessages(prev => [...prev, newMessage]);
+    }
+    
+    // Update the last_message in conversations list
+    setConversations(prev => 
+      prev.map(conv => {
+        if (conv.id === newMessage.conversation_id) {
+          return { ...conv, last_message: newMessage };
+        }
+        return conv;
+      })
+    );
+    
+    // Mark message as read if it's in the current conversation
+    if (currentConversation && 
+        newMessage.conversation_id === currentConversation.id && 
+        newMessage.sender_id !== user?.id) {
+      markMessageAsRead(newMessage.id);
+    }
+  };
+  
+  const markMessageAsRead = async (messageId: string) => {
     if (!user) return;
     
-    setIsLoadingMessages(true);
+    await supabase
+      .from('messages')
+      .update({ read_at: new Date().toISOString() })
+      .eq('id', messageId)
+      .eq('sender_id', user.id);
+  };
+
+  const fetchMessages = async (conversationId: string, page = 1) => {
+    if (!user) return;
+    
+    setLoadingMessages(true);
     try {
       const { data, error } = await supabase
         .from('messages')
         .select(`
-          *,
+          id,
+          content,
+          sender_id,
+          conversation_id,
+          created_at,
+          read_at,
+          media_url,
           profiles:sender_id (
             username,
             avatar_url
           )
         `)
         .eq('conversation_id', conversationId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false })
+        .range((page - 1) * messagesPerPage, page * messagesPerPage - 1);
       
-      if (error) {
-        throw error;
+      if (error) throw error;
+      
+      if (page === 1) {
+        setMessages(data.reverse() || []);
+      } else {
+        setMessages(prev => [...(data || []).reverse(), ...prev]);
       }
       
-      // Transform data to match the Message interface
-      const transformedMessages = data?.map(msg => {
-        // Handle case where sender relation might not exist
-        const sender = msg.profiles && typeof msg.profiles === 'object' 
-          ? {
-              username: msg.profiles.username,
-              avatar_url: msg.profiles.avatar_url
-            }
-          : null;
-        
-        return {
-          id: msg.id,
-          content: msg.content,
-          media_url: msg.media_url,
-          sender_id: msg.sender_id,
-          conversation_id: msg.conversation_id,
-          created_at: msg.created_at,
-          read_at: msg.read_at,
-          sender
-        } as Message;
-      }) || [];
+      // Mark unread messages as read
+      const unreadMessages = data?.filter(msg => 
+        msg.sender_id !== user.id && !msg.read_at
+      ) || [];
       
-      setMessages(transformedMessages);
-      
-      // Mark unread messages as read if they're not from the current user
-      const unreadMessages = transformedMessages.filter(
-        msg => !msg.read_at && msg.sender_id !== user.id
-      );
-      
-      if (unreadMessages.length > 0) {
-        await Promise.all(
-          unreadMessages.map(msg => markMessageAsRead(msg.id))
-        );
+      for (const msg of unreadMessages) {
+        await markMessageAsRead(msg.id);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
     } finally {
-      setIsLoadingMessages(false);
+      setLoadingMessages(false);
     }
   };
-
-  const markMessageAsRead = async (messageId: string) => {
-    await supabase
-      .from('messages')
-      .update({ read_at: new Date().toISOString() })
-      .eq('id', messageId);
-  };
-
-  const markConversationAsRead = async (conversationId: string) => {
-    if (!user) return;
+  
+  const fetchMoreMessages = async () => {
+    if (!currentConversation) return;
     
-    try {
-      await supabase
-        .from('messages')
-        .update({ read_at: new Date().toISOString() })
-        .eq('conversation_id', conversationId)
-        .eq('sender_id', user.id, true) // Not from current user
-        .is('read_at', null);
-      
-      // Update local state
-      setConversations(prev =>
-        prev.map(conv =>
-          conv.id === conversationId
-            ? { ...conv, unread_count: 0 }
-            : conv
-        )
-      );
-    } catch (error) {
-      console.error('Error marking conversation as read:', error);
+    const nextPage = messagesPage + 1;
+    await fetchMessages(currentConversation.id, nextPage);
+    setMessagesPage(nextPage);
+  };
+  
+  const selectConversation = async (conversationId: string) => {
+    const conversation = conversations.find(c => c.id === conversationId);
+    if (conversation) {
+      setCurrentConversation(conversation);
+      setMessagesPage(1);
+      await fetchMessages(conversationId);
     }
   };
-
-  const sendMessage = async (conversationId: string, content: string, mediaUrl?: string) => {
-    if (!user) return;
+  
+  const startConversation = async (userId: string): Promise<string | null> => {
+    if (!user || userId === user.id) return null;
     
     try {
-      const { data, error } = await supabase
-        .from('messages')
-        .insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content,
-          media_url: mediaUrl || null
-        })
-        .select();
+      // Check if conversation already exists
+      const { data: existingParticipants } = await supabase
+        .from('participants')
+        .select('conversation_id')
+        .eq('user_id', user.id);
       
-      if (error) {
-        throw error;
-      }
+      const userConversationIds = existingParticipants?.map(p => p.conversation_id) || [];
       
-      return;
-    } catch (error) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to send message',
-        variant: 'destructive',
-      });
-    }
-  };
-
-  const createConversation = async (userIds: string[]): Promise<string | null> => {
-    if (!user) return null;
-    
-    // Make sure current user is included and each user appears only once
-    const participantIds = [...new Set([user.id, ...userIds])];
-    
-    try {
-      // First check if the conversation already exists with exactly these participants
-      // This is a simplification and won't work for group chats with the same participants
-      if (participantIds.length === 2) {
-        // For 1:1 conversations
-        const { data: existingParticipants } = await supabase
+      if (userConversationIds.length > 0) {
+        const { data: otherParticipants } = await supabase
           .from('participants')
           .select('conversation_id')
-          .in('user_id', participantIds);
+          .eq('user_id', userId)
+          .in('conversation_id', userConversationIds);
         
-        if (existingParticipants && existingParticipants.length >= 2) {
-          const conversationCounts = existingParticipants.reduce((acc, p) => {
-            acc[p.conversation_id] = (acc[p.conversation_id] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>);
-          
-          // Find conversation that has exactly these participants
-          for (const [convId, count] of Object.entries(conversationCounts)) {
-            if (count === 2) {
-              // Verify this conversation has exactly 2 participants
-              const { count: actualCount } = await supabase
-                .from('participants')
-                .select('id', { count: 'exact', head: true })
-                .eq('conversation_id', convId);
-              
-              if (actualCount === 2) {
-                // This is a match, return the existing conversation
-                return convId;
-              }
-            }
-          }
+        if (otherParticipants && otherParticipants.length > 0) {
+          // Conversation exists, select it
+          const conversationId = otherParticipants[0].conversation_id;
+          await selectConversation(conversationId);
+          return conversationId;
         }
       }
       
       // Create new conversation
-      const { data: conversationData, error: conversationError } = await supabase
+      const { data: newConversation, error: conversationError } = await supabase
         .from('conversations')
         .insert({})
         .select()
         .single();
       
-      if (conversationError) {
-        throw conversationError;
-      }
+      if (conversationError) throw conversationError;
       
       // Add participants
-      const participantsToInsert = participantIds.map(userId => ({
-        conversation_id: conversationData.id,
-        user_id: userId
-      }));
+      const participants = [
+        { conversation_id: newConversation.id, user_id: user.id },
+        { conversation_id: newConversation.id, user_id: userId }
+      ];
       
       const { error: participantsError } = await supabase
         .from('participants')
-        .insert(participantsToInsert);
+        .insert(participants);
       
-      if (participantsError) {
-        throw participantsError;
-      }
+      if (participantsError) throw participantsError;
       
-      return conversationData.id;
+      // Fetch user profiles
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, username, avatar_url')
+        .in('id', [user.id, userId]);
+      
+      // Create conversation object
+      const conversation: Conversation = {
+        id: newConversation.id,
+        created_at: newConversation.created_at,
+        participants: participants.map(p => ({
+          id: p.conversation_id,
+          user_id: p.user_id,
+          profiles: profiles?.find(profile => profile.id === p.user_id) || null
+        })),
+        last_message: null
+      };
+      
+      setConversations(prev => [conversation, ...prev]);
+      setCurrentConversation(conversation);
+      setMessages([]);
+      
+      return conversation.id;
     } catch (error) {
-      console.error('Error creating conversation:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to create conversation',
-        variant: 'destructive',
-      });
+      console.error('Error starting conversation:', error);
       return null;
     }
+  };
+  
+  const sendMessage = async (content: string, mediaUrl?: string) => {
+    if (!user || !currentConversation) return;
+    
+    try {
+      const newMessage = {
+        conversation_id: currentConversation.id,
+        sender_id: user.id,
+        content,
+        media_url: mediaUrl || null
+      };
+      
+      const { error } = await supabase
+        .from('messages')
+        .insert(newMessage);
+      
+      if (error) throw error;
+      
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+  
+  const resetState = () => {
+    setConversations([]);
+    setCurrentConversation(null);
+    setMessages([]);
+    setSelectedUserId(null);
   };
 
   return (
@@ -397,20 +368,21 @@ export const MessageProvider = ({ children }: { children: ReactNode }) => {
         conversations,
         currentConversation,
         messages,
-        isLoadingMessages,
-        isLoadingConversations,
-        fetchConversations,
-        fetchMessages,
+        loadingConversations,
+        loadingMessages,
+        selectedUserId,
+        setSelectedUserId,
+        startConversation,
+        selectConversation,
         sendMessage,
-        createConversation,
-        setCurrentConversation,
-        markConversationAsRead,
+        fetchMoreMessages,
+        resetState
       }}
     >
       {children}
     </MessageContext.Provider>
   );
-};
+}
 
 export const useMessages = () => {
   const context = useContext(MessageContext);
@@ -418,4 +390,39 @@ export const useMessages = () => {
     throw new Error('useMessages must be used within a MessageProvider');
   }
   return context;
+};
+
+export const MessageItem = ({ message, isOwnMessage }: { message: Message, isOwnMessage: boolean }) => {
+  return (
+    <div className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-4`}>
+      <div className={`flex ${isOwnMessage ? 'flex-row-reverse' : 'flex-row'} items-end gap-2 max-w-[80%]`}>
+        {!isOwnMessage && (
+          <Avatar className="h-8 w-8">
+            <AvatarImage src={message.profiles?.avatar_url || ''} />
+            <AvatarFallback>{message.profiles?.username?.[0] || '?'}</AvatarFallback>
+          </Avatar>
+        )}
+        
+        <div>
+          <div className={`p-3 rounded-lg ${
+            isOwnMessage 
+              ? 'bg-primary text-primary-foreground rounded-br-none' 
+              : 'bg-muted rounded-bl-none'
+          }`}>
+            {message.content && <p>{message.content}</p>}
+            {message.media_url && (
+              <img 
+                src={message.media_url} 
+                alt="Media" 
+                className="mt-2 rounded max-w-xs max-h-48 object-contain"
+              />
+            )}
+          </div>
+          <p className={`text-xs text-muted-foreground mt-1 ${isOwnMessage ? 'text-right' : ''}`}>
+            {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
 };
