@@ -51,6 +51,7 @@ export function VideosContainer() {
       {videos.map((video) => (
         <VideoCard
           key={video.id}
+          id={video.id}
           title={video.title}
           channelName={video.channelName}
           channelAvatar={video.channelAvatar}

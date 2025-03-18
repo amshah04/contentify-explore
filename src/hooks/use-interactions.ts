@@ -13,6 +13,20 @@ interface InteractionOptions {
   userId: string;
 }
 
+// Helper function to map content type to table name
+const getTableName = (contentType: ContentType): TableName | null => {
+  switch (contentType) {
+    case 'post':
+      return 'posts';
+    case 'video':
+      return 'videos';
+    case 'reel':
+      return 'reels';
+    default:
+      return null;
+  }
+};
+
 export const useInteractions = () => {
   const { user } = useAuth();
   const [isLiked, setIsLiked] = useState(false);
@@ -54,21 +68,11 @@ export const useInteractions = () => {
       setIsSaved(!!savedData);
       
       // Get likes count based on content type
-      // Map the content type to the appropriate table name
-      let tableName: TableName;
-      switch (contentType) {
-        case 'post':
-          tableName = 'posts';
-          break;
-        case 'video':
-          tableName = 'videos';
-          break;
-        case 'reel':
-          tableName = 'reels';
-          break;
-        default:
-          console.error('Unsupported content type for likes count');
-          return;
+      const tableName = getTableName(contentType);
+      
+      if (!tableName) {
+        console.error('Unsupported content type for likes count');
+        return;
       }
       
       // Use the table name with proper typing

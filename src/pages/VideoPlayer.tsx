@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/layout/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -9,8 +10,7 @@ import {
   Share2, 
   Download, 
   Bookmark, 
-  MoreHorizontal,
-  MoreVertical
+  MoreHorizontal
 } from "lucide-react";
 import { VideoCard } from "@/components/videos/video-card";
 import { 
@@ -20,9 +20,11 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
+import { useInteractions } from "@/hooks/use-interactions";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Dummy data for related videos
-const relatedVideos = [
+// Sample video data
+const sampleVideos = [
   {
     id: "1",
     title: "How to Create Amazing Digital Art",
@@ -32,6 +34,7 @@ const relatedVideos = [
     views: "125K",
     timeAgo: "3 days ago",
     duration: "15:42",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
   {
     id: "2",
@@ -42,6 +45,7 @@ const relatedVideos = [
     views: "89K",
     timeAgo: "1 week ago",
     duration: "22:17",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
   {
     id: "3",
@@ -52,7 +56,41 @@ const relatedVideos = [
     views: "246K",
     timeAgo: "2 weeks ago",
     duration: "18:05",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
+  {
+    id: "4",
+    title: "Easy Dinner Recipes Under 30 Minutes",
+    channelName: "CookingWithJoy",
+    channelAvatar: "https://i.pravatar.cc/150?img=15",
+    thumbnail: "https://images.unsplash.com/photo-1493770348161-369560ae357d",
+    views: "412K",
+    timeAgo: "3 days ago",
+    duration: "12:38",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
+  },
+  {
+    id: "5",
+    title: "Mountain Biking Techniques for Beginners",
+    channelName: "OutdoorAdventures",
+    channelAvatar: "https://i.pravatar.cc/150?img=22",
+    thumbnail: "https://images.unsplash.com/photo-1541625602330-2277a4c46182",
+    views: "78K",
+    timeAgo: "5 days ago",
+    duration: "14:22",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
+  },
+  {
+    id: "6",
+    title: "Introduction to Machine Learning",
+    channelName: "DataScience101",
+    channelAvatar: "https://i.pravatar.cc/150?img=33",
+    thumbnail: "https://images.unsplash.com/photo-1555949963-ff9fe0c870eb",
+    views: "156K",
+    timeAgo: "1 month ago",
+    duration: "25:18",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
+  }
 ];
 
 // Dummy data for comments
@@ -77,11 +115,71 @@ const comments = [
 
 export default function VideoPlayer() {
   const { id } = useParams();
+  const { user } = useAuth();
+  const { isLiked, isSaved, likesCount, checkInteractionStatus, toggleLike, toggleSave } = useInteractions();
   
+  const [currentVideo, setCurrentVideo] = useState<any>(null);
+  const [relatedVideos, setRelatedVideos] = useState<any[]>([]);
+  
+  // Find current video and related videos
+  useEffect(() => {
+    // Find current video by ID
+    const video = sampleVideos.find(video => video.id === id) || sampleVideos[0];
+    setCurrentVideo(video);
+    
+    // Get related videos (all videos except current one)
+    const related = sampleVideos.filter(v => v.id !== video.id);
+    // Shuffle array to show random related videos
+    const shuffled = [...related].sort(() => 0.5 - Math.random());
+    setRelatedVideos(shuffled);
+    
+    // Check interaction status if user is logged in
+    if (user && video) {
+      checkInteractionStatus({
+        contentId: video.id,
+        contentType: 'video',
+        userId: user.id
+      });
+    }
+  }, [id, user]);
+
   const handleLike = () => {
+    if (user && currentVideo) {
+      toggleLike({
+        contentId: currentVideo.id,
+        contentType: 'video',
+        userId: user.id
+      });
+    } else {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to like videos",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleSave = () => {
+    if (user && currentVideo) {
+      toggleSave({
+        contentId: currentVideo.id,
+        contentType: 'video',
+        userId: user.id
+      });
+    } else {
+      toast({
+        title: "Authentication required",
+        description: "Please sign in to save videos",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleShare = () => {
+    navigator.clipboard.writeText(window.location.href);
     toast({
-      title: "Video liked",
-      description: "Thanks for your feedback!",
+      title: "Share link copied",
+      description: "Video link copied to clipboard",
     });
   };
 
@@ -92,63 +190,51 @@ export default function VideoPlayer() {
     });
   };
 
-  const handleSave = () => {
-    toast({
-      title: "Video saved",
-      description: "Video added to your saved videos",
-    });
-  };
-
-  const handleShare = () => {
-    toast({
-      title: "Share link copied",
-      description: "Video link copied to clipboard",
-    });
-  };
-
   const handleFollow = () => {
     toast({
-      title: "Following CreativeArtists",
+      title: `Following ${currentVideo?.channelName}`,
       description: "You'll see their content in your feed",
     });
   };
   
-  // In a real app, this would fetch the video data based on the ID
-  const videoData = {
-    title: "How to Create Amazing Digital Art",
-    channelName: "CreativeArtists",
-    channelAvatar: "https://i.pravatar.cc/150?img=8",
-    views: "125K",
-    timeAgo: "3 days ago",
-    description: "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!",
-    likes: "15K",
-    comments: 342,
-  };
+  if (!currentVideo) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center h-96">
+          <p>Loading video...</p>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
       <div className="max-w-full mx-auto md:flex md:gap-6">
         <div className="md:flex-1 md:max-w-4xl">
           <div className="aspect-video bg-black mb-4 overflow-hidden">
-            {/* This would be a real video player in production */}
-            <div className="flex h-full items-center justify-center text-white">
-              Video Player: ID {id}
-            </div>
+            {/* Actual Video Player */}
+            <video
+              className="w-full h-full"
+              src={currentVideo.videoUrl}
+              poster={currentVideo.thumbnail}
+              controls
+              autoPlay
+            />
           </div>
           
           <div className="px-4 md:px-0 space-y-4">
-            <h1 className="text-xl font-bold md:text-2xl">{videoData.title}</h1>
+            <h1 className="text-xl font-bold md:text-2xl">{currentVideo.title}</h1>
             
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarImage src={videoData.channelAvatar} alt={videoData.channelName} />
-                  <AvatarFallback>{videoData.channelName[0]}</AvatarFallback>
+                  <AvatarImage src={currentVideo.channelAvatar} alt={currentVideo.channelName} />
+                  <AvatarFallback>{currentVideo.channelName[0]}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <div className="font-medium">{videoData.channelName}</div>
+                  <div className="font-medium">{currentVideo.channelName}</div>
                   <div className="text-sm text-muted-foreground">
-                    {videoData.views} views • {videoData.timeAgo}
+                    {currentVideo.views} views • {currentVideo.timeAgo}
                   </div>
                 </div>
                 <Button onClick={handleFollow} variant="outline" size="sm">
@@ -157,9 +243,14 @@ export default function VideoPlayer() {
               </div>
               
               <div className="flex items-center gap-2 overflow-x-auto pb-2">
-                <Button variant="outline" size="sm" onClick={handleLike}>
+                <Button 
+                  variant={isLiked ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={handleLike}
+                  className={isLiked ? "bg-blue-600 hover:bg-blue-700" : ""}
+                >
                   <ThumbsUp className="mr-2 h-4 w-4" />
-                  {videoData.likes}
+                  {likesCount || currentVideo.likes || "Like"}
                 </Button>
                 <Button variant="outline" size="sm" onClick={handleShare}>
                   <Share2 className="mr-2 h-4 w-4" />
@@ -169,9 +260,14 @@ export default function VideoPlayer() {
                   <Download className="mr-2 h-4 w-4" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleSave}>
+                <Button 
+                  variant={isSaved ? "default" : "outline"} 
+                  size="sm" 
+                  onClick={handleSave}
+                  className={isSaved ? "bg-blue-600 hover:bg-blue-700" : ""}
+                >
                   <Bookmark className="mr-2 h-4 w-4" />
-                  Save
+                  {isSaved ? "Saved" : "Save"}
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -195,12 +291,12 @@ export default function VideoPlayer() {
             </div>
             
             <div className="rounded-lg bg-muted p-4 whitespace-pre-line">
-              <p>{videoData.description}</p>
+              <p>{currentVideo.description || "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!"}</p>
             </div>
             
             {/* Comments section */}
             <div className="space-y-4 mt-6">
-              <h2 className="text-lg font-semibold">{videoData.comments} Comments</h2>
+              <h2 className="text-lg font-semibold">{comments.length} Comments</h2>
               
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-3">

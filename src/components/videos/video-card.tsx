@@ -26,6 +26,7 @@ interface VideoCardProps {
   views: string;
   timeAgo: string;
   duration: string;
+  id?: string;
 }
 
 export function VideoCard({
@@ -36,6 +37,7 @@ export function VideoCard({
   views,
   timeAgo,
   duration,
+  id = "123", // Default ID if not provided
 }: VideoCardProps) {
   const handleAddToQueue = () => {
     toast({
@@ -74,7 +76,7 @@ export function VideoCard({
 
   return (
     <div className="group rounded-lg overflow-hidden">
-      <Link to={`/video/123`} className="block">
+      <Link to={`/video/${id}`} className="block">
         <div className="relative aspect-video overflow-hidden rounded-lg bg-muted">
           <img
             src={thumbnail}
@@ -93,9 +95,11 @@ export function VideoCard({
         </Avatar>
         <div className="flex-1 space-y-1">
           <div className="flex justify-between">
-            <h3 className="line-clamp-2 font-medium leading-tight text-foreground pr-2">
-              {title}
-            </h3>
+            <Link to={`/video/${id}`} className="hover:underline">
+              <h3 className="line-clamp-2 font-medium leading-tight text-foreground pr-2">
+                {title}
+              </h3>
+            </Link>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
