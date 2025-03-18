@@ -9,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 const myStory = {
   id: "my-story",
   username: "You",
-  avatar: "https://i.pravatar.cc/150?img=12",
+  avatarUrl: "https://i.pravatar.cc/150?img=12",
   hasUnseenStory: false,
 };
 
@@ -18,43 +18,43 @@ const stories = [
   {
     id: "1",
     username: "johndoe",
-    avatar: "https://i.pravatar.cc/150?img=1",
+    avatarUrl: "https://i.pravatar.cc/150?img=1",
     hasUnseenStory: true,
   },
   {
     id: "2",
     username: "janedoe",
-    avatar: "https://i.pravatar.cc/150?img=5",
+    avatarUrl: "https://i.pravatar.cc/150?img=5",
     hasUnseenStory: true,
   },
   {
     id: "3",
     username: "willsmith",
-    avatar: "https://i.pravatar.cc/150?img=3",
+    avatarUrl: "https://i.pravatar.cc/150?img=3",
     hasUnseenStory: true,
   },
   {
     id: "4",
     username: "sarahlee",
-    avatar: "https://i.pravatar.cc/150?img=4",
+    avatarUrl: "https://i.pravatar.cc/150?img=4",
     hasUnseenStory: false,
   },
   {
     id: "5",
     username: "mikebrown",
-    avatar: "https://i.pravatar.cc/150?img=7",
+    avatarUrl: "https://i.pravatar.cc/150?img=7",
     hasUnseenStory: true,
   },
   {
     id: "6",
     username: "jessicap",
-    avatar: "https://i.pravatar.cc/150?img=10",
+    avatarUrl: "https://i.pravatar.cc/150?img=10",
     hasUnseenStory: false,
   },
   {
     id: "7",
     username: "davidw",
-    avatar: "https://i.pravatar.cc/150?img=11",
+    avatarUrl: "https://i.pravatar.cc/150?img=11",
     hasUnseenStory: true,
   },
 ];
@@ -76,10 +76,10 @@ export function StoriesContainer() {
         <div className="flex flex-col items-center">
           <div className="relative">
             <StoryRing
-              avatar={myStory.avatar}
+              avatarUrl={myStory.avatarUrl}
               username={myStory.username}
               hasUnseenStory={myStory.hasUnseenStory}
-              isMyStory
+              isMyStory={true}
             />
             <Button 
               size="icon" 
@@ -95,7 +95,7 @@ export function StoriesContainer() {
         {stories.map((story) => (
           <div key={story.id} className="flex flex-col items-center">
             <StoryRing
-              avatar={story.avatar}
+              avatarUrl={story.avatarUrl}
               username={story.username}
               hasUnseenStory={story.hasUnseenStory}
             />

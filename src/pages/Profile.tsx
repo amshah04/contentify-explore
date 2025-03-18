@@ -264,7 +264,7 @@ export default function Profile() {
           </TabsContent>
           
           <TabsContent value="videos" className="mt-6">
-            <ProfileGrid items={videoItems} />
+            <VideosContainer />
           </TabsContent>
         </Tabs>
       </div>

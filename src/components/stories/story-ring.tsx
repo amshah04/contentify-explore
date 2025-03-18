@@ -1,45 +1,40 @@
 
-import { cn } from "@/lib/utils";
-import React from "react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { toast } from "@/hooks/use-toast";
 
-interface StoryRingProps {
-  imageUrl: string;
+export interface StoryRingProps {
+  avatarUrl: string;
   username: string;
-  viewed?: boolean;
-  className?: string;
-  onClick?: () => void;
-  children?: React.ReactNode;
+  hasUnseenStory: boolean;
+  isMyStory?: boolean;
 }
 
-export function StoryRing({ 
-  imageUrl, 
-  username, 
-  viewed = false, 
-  className,
-  onClick,
-  children 
-}: StoryRingProps) {
+export function StoryRing({ avatarUrl, username, hasUnseenStory, isMyStory = false }: StoryRingProps) {
+  const handleClick = () => {
+    if (isMyStory) {
+      toast({
+        title: "Your Story",
+        description: "You can view or add to your story",
+      });
+    } else {
+      toast({
+        title: `${username}'s Story`,
+        description: hasUnseenStory ? "New story available" : "No new stories",
+      });
+    }
+  };
+
   return (
-    <div 
-      className={cn("flex flex-col items-center gap-1", className)}
-      onClick={onClick}
+    <div
+      className={`cursor-pointer flex items-center justify-center rounded-full p-[2px] ${
+        hasUnseenStory ? "bg-gradient-to-tr from-yellow-400 to-fuchsia-600" : "bg-muted"
+      }`}
+      onClick={handleClick}
     >
-      <div 
-        className={cn(
-          "rounded-full p-[2px] relative cursor-pointer", 
-          viewed ? "bg-gray-300 dark:bg-gray-700" : "social-gradient"
-        )}
-      >
-        <div className="rounded-full bg-background p-[2px]">
-          <img
-            src={imageUrl}
-            alt={username}
-            className="h-16 w-16 rounded-full object-cover"
-          />
-        </div>
-        {children}
-      </div>
-      <span className="text-xs">{username}</span>
+      <Avatar className="h-16 w-16 border-2 border-background">
+        <AvatarImage src={avatarUrl} alt={username} />
+        <AvatarFallback>{username[0]}</AvatarFallback>
+      </Avatar>
     </div>
   );
 }
