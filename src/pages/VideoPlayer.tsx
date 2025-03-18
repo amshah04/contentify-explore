@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,9 @@ import {
   Share2, 
   Download, 
   Bookmark, 
-  MoreHorizontal
+  MoreHorizontal,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { VideoCard } from "@/components/videos/video-card";
 import { 
@@ -115,11 +117,13 @@ const comments = [
 
 export default function VideoPlayer() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isLiked, isSaved, likesCount, checkInteractionStatus, toggleLike, toggleSave } = useInteractions();
   
   const [currentVideo, setCurrentVideo] = useState<any>(null);
   const [relatedVideos, setRelatedVideos] = useState<any[]>([]);
+  const [showDescription, setShowDescription] = useState(false);
   
   // Find current video and related videos
   useEffect(() => {
@@ -245,29 +249,25 @@ export default function VideoPlayer() {
               <div className="flex items-center gap-2 overflow-x-auto pb-2">
                 <Button 
                   variant={isLiked ? "default" : "outline"} 
-                  size="sm" 
+                  size="icon" 
                   onClick={handleLike}
                   className={isLiked ? "bg-blue-600 hover:bg-blue-700" : ""}
                 >
-                  <ThumbsUp className="mr-2 h-4 w-4" />
-                  {likesCount || currentVideo.likes || "Like"}
+                  <ThumbsUp className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share2 className="mr-2 h-4 w-4" />
-                  Share
+                <Button variant="outline" size="icon" onClick={handleShare}>
+                  <Share2 className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleDownload}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Download
+                <Button variant="outline" size="icon" onClick={handleDownload}>
+                  <Download className="h-4 w-4" />
                 </Button>
                 <Button 
                   variant={isSaved ? "default" : "outline"} 
-                  size="sm" 
+                  size="icon" 
                   onClick={handleSave}
                   className={isSaved ? "bg-blue-600 hover:bg-blue-700" : ""}
                 >
-                  <Bookmark className="mr-2 h-4 w-4" />
-                  {isSaved ? "Saved" : "Save"}
+                  <Bookmark className="h-4 w-4" />
                 </Button>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -290,8 +290,24 @@ export default function VideoPlayer() {
               </div>
             </div>
             
-            <div className="rounded-lg bg-muted p-4 whitespace-pre-line">
-              <p>{currentVideo.description || "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!"}</p>
+            <div className="rounded-lg bg-muted p-4">
+              <div 
+                className="flex items-center justify-between cursor-pointer" 
+                onClick={() => setShowDescription(!showDescription)}
+              >
+                <div className="flex items-center gap-2">
+                  <span>{currentVideo.views} views • {currentVideo.timeAgo}</span>
+                </div>
+                <Button variant="ghost" size="icon">
+                  {showDescription ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+              </div>
+              
+              {showDescription && (
+                <p className="mt-2 whitespace-pre-line">
+                  {currentVideo.description || "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!"}
+                </p>
+              )}
             </div>
             
             {/* Comments section */}
@@ -333,6 +349,7 @@ export default function VideoPlayer() {
             {relatedVideos.map((video) => (
               <VideoCard
                 key={video.id}
+                id={video.id}
                 title={video.title}
                 channelName={video.channelName}
                 channelAvatar={video.channelAvatar}

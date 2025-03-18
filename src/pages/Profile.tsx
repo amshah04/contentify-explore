@@ -1,8 +1,5 @@
-
 import { useState } from "react";
 import { Layout } from "@/components/layout/layout";
-import { ProfileHeader } from "@/components/profile/profile-header";
-import { ProfileGrid } from "@/components/profile/profile-grid";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { 
@@ -14,6 +11,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "@/hooks/use-toast";
 import { Settings, Share2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { VideosContainer } from "@/components/videos/videos-container";
+import { ProfileGrid } from "@/components/profile/profile-grid";
 
 // Dummy profile data
 const profileData = {
@@ -90,20 +90,20 @@ const reelsItems = [
   },
 ];
 
-const savedItems = [
+const videoItems = [
   {
-    id: "9",
-    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c",
-    type: "image" as const,
-    likes: 178,
-    comments: 29,
+    id: "11",
+    image: "https://images.unsplash.com/photo-1618605588556-c887188781cc",
+    type: "video" as const,
+    likes: 176,
+    comments: 28,
   },
   {
-    id: "10",
-    image: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32",
-    type: "image" as const,
-    likes: 214,
-    comments: 38,
+    id: "12",
+    image: "https://images.unsplash.com/photo-1555066931-4365d14bab8c",
+    type: "video" as const,
+    likes: 134,
+    comments: 19,
   },
 ];
 
@@ -118,6 +118,7 @@ export default function Profile() {
   };
   
   const handleShareProfile = () => {
+    navigator.clipboard.writeText(window.location.href);
     toast({
       title: "Share Profile",
       description: "Profile link copied to clipboard",
@@ -142,6 +143,20 @@ export default function Profile() {
     toast({
       title: "Delete Account",
       description: "Account deletion confirmation would appear here",
+    });
+  };
+
+  const handleFollowersClick = () => {
+    toast({
+      title: "Followers",
+      description: "Followers list would open here",
+    });
+  };
+
+  const handleFollowingClick = () => {
+    toast({
+      title: "Following",
+      description: "Following list would open here",
     });
   };
 
@@ -205,11 +220,11 @@ export default function Profile() {
                 <p className="font-bold">{profileData.postsCount}</p>
                 <p className="text-sm text-muted-foreground">Posts</p>
               </div>
-              <div className="text-center">
+              <div className="text-center cursor-pointer" onClick={handleFollowersClick}>
                 <p className="font-bold">{profileData.followersCount}</p>
                 <p className="text-sm text-muted-foreground">Followers</p>
               </div>
-              <div className="text-center">
+              <div className="text-center cursor-pointer" onClick={handleFollowingClick}>
                 <p className="font-bold">{profileData.followingCount}</p>
                 <p className="text-sm text-muted-foreground">Following</p>
               </div>
@@ -234,11 +249,10 @@ export default function Profile() {
           onValueChange={setActiveTab} 
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="reels">Reels</TabsTrigger>
-            <TabsTrigger value="saved">Saved</TabsTrigger>
-            <TabsTrigger value="tagged">Tagged</TabsTrigger>
+            <TabsTrigger value="videos">Videos</TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="mt-6">
@@ -249,15 +263,8 @@ export default function Profile() {
             <ProfileGrid items={reelsItems} />
           </TabsContent>
           
-          <TabsContent value="saved" className="mt-6">
-            <ProfileGrid items={savedItems} />
-          </TabsContent>
-          
-          <TabsContent value="tagged" className="mt-6">
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <p className="text-xl font-semibold mb-2">No Photos</p>
-              <p className="text-muted-foreground">No photos where you've been tagged.</p>
-            </div>
+          <TabsContent value="videos" className="mt-6">
+            <ProfileGrid items={videoItems} />
           </TabsContent>
         </Tabs>
       </div>

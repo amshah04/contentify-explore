@@ -1,12 +1,12 @@
-
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout/layout";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatDistanceToNow } from "date-fns";
-import { Search, Edit, Send, Phone, Video, Info } from "lucide-react";
+import { Search, Edit, Send, Phone, Video, Info, ArrowLeft } from "lucide-react";
 
 // Dummy data for chats
 const chats = [
@@ -84,6 +84,7 @@ const messages = [
 ];
 
 export default function Messages() {
+  const navigate = useNavigate();
   const [selectedChat, setSelectedChat] = useState<string | null>(chats[0].id);
   const [searchQuery, setSearchQuery] = useState("");
   const [messageText, setMessageText] = useState("");
@@ -101,6 +102,10 @@ export default function Messages() {
     console.log(`Sending message to ${selectedChatData?.username}: ${messageText}`);
     setMessageText("");
   };
+
+  const handleGoBack = () => {
+    navigate(-1);
+  };
   
   return (
     <Layout>
@@ -108,7 +113,12 @@ export default function Messages() {
         {/* Chat list */}
         <div className="w-full md:w-80 border-r hidden md:block">
           <div className="p-4 border-b flex items-center justify-between">
-            <h2 className="text-xl font-bold">Messages</h2>
+            <div className="flex items-center">
+              <Button variant="ghost" size="icon" onClick={handleGoBack} className="mr-2">
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <h2 className="text-xl font-bold">Messages</h2>
+            </div>
             <Button variant="ghost" size="icon">
               <Edit className="h-5 w-5" />
             </Button>
@@ -170,6 +180,9 @@ export default function Messages() {
             <>
               <div className="p-4 border-b flex items-center justify-between">
                 <div className="flex items-center gap-3">
+                  <Button variant="ghost" size="icon" onClick={handleGoBack} className="md:hidden">
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
                   <Avatar className="h-8 w-8">
                     <AvatarImage src={selectedChatData.avatar} alt={selectedChatData.username} />
                     <AvatarFallback>{selectedChatData.username[0]}</AvatarFallback>
@@ -239,8 +252,13 @@ export default function Messages() {
             </>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-              <div className="mb-4 p-4 rounded-full bg-muted">
-                <Edit className="h-10 w-10 text-primary" />
+              <div className="flex items-center mb-4">
+                <Button variant="ghost" size="icon" onClick={handleGoBack} className="md:hidden mr-2">
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div className="p-4 rounded-full bg-muted">
+                  <Edit className="h-10 w-10 text-primary" />
+                </div>
               </div>
               <h3 className="text-xl font-semibold mb-2">Your Messages</h3>
               <p className="text-muted-foreground mb-4">Send private messages to your friends and connections</p>

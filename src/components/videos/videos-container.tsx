@@ -12,6 +12,7 @@ const videos = [
     views: "125K",
     timeAgo: "3 days ago",
     duration: "15:42",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
   {
     id: "2",
@@ -22,6 +23,7 @@ const videos = [
     views: "89K",
     timeAgo: "1 week ago",
     duration: "22:17",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
   {
     id: "3",
@@ -32,6 +34,7 @@ const videos = [
     views: "246K",
     timeAgo: "2 weeks ago",
     duration: "18:05",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
   {
     id: "4",
@@ -42,13 +45,22 @@ const videos = [
     views: "412K",
     timeAgo: "3 days ago",
     duration: "12:38",
+    videoUrl: "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_1mb.mp4"
   },
 ];
 
 export function VideosContainer() {
+  // Function to randomize video order
+  const shuffleVideos = (array: typeof videos) => {
+    return [...array].sort(() => 0.5 - Math.random());
+  };
+  
+  // Get random videos to display
+  const randomizedVideos = shuffleVideos(videos);
+  
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-      {videos.map((video) => (
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {randomizedVideos.map((video) => (
         <VideoCard
           key={video.id}
           id={video.id}
