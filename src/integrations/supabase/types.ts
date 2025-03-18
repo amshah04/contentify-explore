@@ -469,7 +469,47 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      messages_with_profiles: {
+        Row: {
+          avatar_url: string | null
+          content: string | null
+          conversation_id: string | null
+          created_at: string | null
+          id: string | null
+          media_url: string | null
+          profile_id: string | null
+          read_at: string | null
+          sender_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      participants_with_profiles: {
+        Row: {
+          avatar_url: string | null
+          conversation_id: string | null
+          id: string | null
+          user_id: string | null
+          username: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participants_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       [_ in never]: never

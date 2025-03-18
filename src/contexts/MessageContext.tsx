@@ -28,10 +28,8 @@ export interface Conversation {
   participants: {
     id: string;
     user_id: string;
-    profiles?: {
-      username?: string;
-      avatar_url?: string;
-    } | null;
+    username?: string;
+    avatar_url?: string;
   }[];
   last_message?: Message | null;
 }
@@ -115,17 +113,10 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       for (const item of data || []) {
         const conversation = item.conversations as Omit<Conversation, 'participants' | 'last_message'>;
         
-        // Fetch participants for this conversation
+        // Fetch participants for this conversation using our new view
         const { data: participantsData, error: participantsError } = await supabase
-          .from('participants')
-          .select(`
-            id,
-            user_id,
-            profiles:user_id (
-              username,
-              avatar_url
-            )
-          `)
+          .from('participants_with_profiles')
+          .select('*')
           .eq('conversation_id', conversation.id);
           
         if (participantsError) {
@@ -139,30 +130,33 @@ export function MessageProvider({ children }: { children: ReactNode }) {
           last_message: null
         };
         
-        // Fetch last message for this conversation
+        // Fetch last message for this conversation using the new view
         const { data: messageData, error: messageError } = await supabase
-          .from('messages')
-          .select(`
-            id,
-            content,
-            sender_id,
-            conversation_id,
-            created_at,
-            read_at,
-            media_url,
-            profiles:sender_id (
-              id,
-              username,
-              avatar_url
-            )
-          `)
+          .from('messages_with_profiles')
+          .select('*')
           .eq('conversation_id', conversation.id)
           .order('created_at', { ascending: false })
           .limit(1)
           .single();
           
         if (!messageError && messageData) {
-          conversationWithParticipants.last_message = messageData as Message;
+          // Transform the message data to match our Message interface
+          const lastMessage: Message = {
+            id: messageData.id,
+            content: messageData.content,
+            sender_id: messageData.sender_id,
+            conversation_id: messageData.conversation_id,
+            created_at: messageData.created_at,
+            read_at: messageData.read_at,
+            media_url: messageData.media_url,
+            profiles: {
+              id: messageData.profile_id,
+              username: messageData.username,
+              avatar_url: messageData.avatar_url
+            }
+          };
+          
+          conversationWithParticipants.last_message = lastMessage;
         }
         
         transformedData.push(conversationWithParticipants);
@@ -215,39 +209,40 @@ export function MessageProvider({ children }: { children: ReactNode }) {
     
     setLoadingMessages(true);
     try {
+      // Use the new view to fetch messages with profiles
       const { data, error } = await supabase
-        .from('messages')
-        .select(`
-          id,
-          content,
-          sender_id,
-          conversation_id,
-          created_at,
-          read_at,
-          media_url,
-          profiles:sender_id (
-            id,
-            username,
-            avatar_url
-          )
-        `)
+        .from('messages_with_profiles')
+        .select('*')
         .eq('conversation_id', conversationId)
         .order('created_at', { ascending: false })
         .range((page - 1) * messagesPerPage, page * messagesPerPage - 1);
       
       if (error) throw error;
       
-      // Type assertion to ensure data matches Message[]
-      const typedMessages = (data || []) as unknown as Message[];
+      // Transform the data to match our Message interface
+      const messages: Message[] = (data || []).map(msg => ({
+        id: msg.id,
+        content: msg.content,
+        sender_id: msg.sender_id,
+        conversation_id: msg.conversation_id,
+        created_at: msg.created_at,
+        read_at: msg.read_at,
+        media_url: msg.media_url,
+        profiles: {
+          id: msg.profile_id,
+          username: msg.username,
+          avatar_url: msg.avatar_url
+        }
+      }));
       
       if (page === 1) {
-        setMessages(typedMessages.reverse());
+        setMessages(messages.reverse());
       } else {
-        setMessages(prev => [...typedMessages.reverse(), ...prev]);
+        setMessages(prev => [...messages.reverse(), ...prev]);
       }
       
       // Mark unread messages as read
-      const unreadMessages = typedMessages.filter(msg => 
+      const unreadMessages = messages.filter(msg => 
         msg.sender_id !== user.id && !msg.read_at
       );
       
@@ -327,20 +322,16 @@ export function MessageProvider({ children }: { children: ReactNode }) {
       if (participantsError) throw participantsError;
       
       // Fetch user profiles
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, username, avatar_url')
-        .in('id', [user.id, userId]);
+      const { data: participantsWithProfiles } = await supabase
+        .from('participants_with_profiles')
+        .select('*')
+        .eq('conversation_id', newConversation.id);
       
       // Create conversation object
       const conversation: Conversation = {
         id: newConversation.id,
         created_at: newConversation.created_at,
-        participants: participants.map(p => ({
-          id: p.conversation_id,
-          user_id: p.user_id,
-          profiles: profiles?.find(profile => profile.id === p.user_id) || null
-        })),
+        participants: participantsWithProfiles || [],
         last_message: null
       };
       

@@ -5,6 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from './use-toast';
 
 type ContentType = 'post' | 'video' | 'reel' | 'comment';
+type TableName = 'posts' | 'videos' | 'reels';
 
 interface InteractionOptions {
   contentId: string;
@@ -54,7 +55,7 @@ export const useInteractions = () => {
       
       // Get likes count based on content type
       // Map the content type to the appropriate table name
-      let tableName: string;
+      let tableName: TableName;
       switch (contentType) {
         case 'post':
           tableName = 'posts';
@@ -70,9 +71,9 @@ export const useInteractions = () => {
           return;
       }
       
-      // Use the table name as a string literal for type safety
+      // Use the table name with proper typing
       const { data, error } = await supabase
-        .from(tableName as 'posts' | 'videos' | 'reels')
+        .from(tableName)
         .select('likes_count')
         .eq('id', contentId)
         .single();
