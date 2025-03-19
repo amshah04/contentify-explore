@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useUpload } from "@/hooks/use-upload";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
 
 type UploadType = "post" | "story" | "reel" | "video" | "live";
@@ -39,7 +38,7 @@ type UploadType = "post" | "story" | "reel" | "video" | "live";
 export default function Upload() {
   const { user } = useAuth();
   const { uploadFile, isUploading, progress } = useUpload();
-  const { isMobile } = useMobile();
+  const isMobile = useIsMobile();
   
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<UploadType | null>(null);
@@ -58,7 +57,6 @@ export default function Upload() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   
-  // Load sample recent media for demo purposes
   useEffect(() => {
     const demoImages = [
       "/placeholder.svg",
@@ -73,7 +71,6 @@ export default function Upload() {
     setRecentMedia(demoImages);
   }, []);
   
-  // Handle camera access
   const startCamera = async () => {
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
@@ -105,7 +102,6 @@ export default function Upload() {
     }
   };
   
-  // Stop camera when component unmounts or when no longer needed
   const stopCamera = () => {
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(track => track.stop());
@@ -125,26 +121,21 @@ export default function Upload() {
       const video = videoRef.current;
       const canvas = canvasRef.current;
       
-      // Set canvas dimensions to match video
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
       
-      // Draw current video frame to canvas
       const context = canvas.getContext('2d');
       if (context) {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         
-        // Convert canvas to blob/file
         canvas.toBlob((blob) => {
           if (blob) {
             const file = new File([blob], `camera-${Date.now()}.jpg`, { type: 'image/jpeg' });
             setSelectedFile(file);
             
-            // Create a preview URL
             const objectUrl = URL.createObjectURL(file);
             setPreviewUrl(objectUrl);
             
-            // Stop camera preview if not for live or video
             if (selectedType !== "live" && selectedType !== "video" && selectedType !== "reel") {
               stopCamera();
             }
@@ -158,13 +149,10 @@ export default function Upload() {
     setSelectedType(type);
     
     if (type === "live") {
-      // For live, instantly start camera streaming
       startCamera();
     } else if (type === "post" || type === "story") {
-      // For photo types, show media picker first
       setIsMediaPickerOpen(true);
     } else {
-      // For video or reel, show media picker with video option
       setIsMediaPickerOpen(true);
     }
   };
@@ -173,7 +161,6 @@ export default function Upload() {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    // Validate file type
     if (selectedType === "post" || selectedType === "story") {
       if (!file.type.startsWith("image/") && !file.type.startsWith("video/")) {
         toast({
@@ -196,12 +183,10 @@ export default function Upload() {
     
     setSelectedFile(file);
     
-    // Create a preview
     const objectUrl = URL.createObjectURL(file);
     setPreviewUrl(objectUrl);
     setIsMediaPickerOpen(false);
     
-    // Clean up the object URL when component unmounts
     return () => URL.revokeObjectURL(objectUrl);
   };
   
@@ -259,7 +244,6 @@ export default function Upload() {
         additionalData = { caption, music };
         break;
       case "live":
-        // For live, we would handle differently
         toast({
           title: "Live streaming",
           description: "Going live functionality is coming soon!",
@@ -282,7 +266,6 @@ export default function Upload() {
     });
     
     if (result) {
-      // Reset form after successful upload
       handleClose();
       toast({
         title: "Upload successful",
@@ -291,7 +274,6 @@ export default function Upload() {
     }
   };
   
-  // Render upload button in main view
   const renderUploadButton = () => (
     <Button 
       onClick={() => setIsMediaPickerOpen(true)} 
@@ -301,7 +283,6 @@ export default function Upload() {
     </Button>
   );
   
-  // Media picker UI (like Instagram's gallery selector)
   const renderMediaPicker = () => {
     const Component = isMobile ? Drawer : Dialog;
     const ContentComponent = isMobile ? DrawerContent : DialogContent;
@@ -311,7 +292,6 @@ export default function Upload() {
       <Component open={isMediaPickerOpen} onOpenChange={setIsMediaPickerOpen}>
         <ContentComponent className="p-0 max-w-full sm:max-w-full h-[90vh] sm:h-[90vh] overflow-hidden">
           <div className="flex flex-col h-full">
-            {/* Header */}
             <div className="flex items-center justify-between p-4 border-b">
               <CloseComponent asChild>
                 <Button variant="ghost" size="icon" onClick={handleClose}>
@@ -324,7 +304,6 @@ export default function Upload() {
               </Button>
             </div>
             
-            {/* Media viewer */}
             <div className="flex-1 bg-black flex items-center justify-center">
               {showCamera ? (
                 <div className="relative w-full h-full">
@@ -372,7 +351,6 @@ export default function Upload() {
               )}
             </div>
             
-            {/* Gallery selection */}
             <div className="bg-black text-white p-2">
               <div className="flex justify-between items-center mb-2">
                 <div className="flex items-center">
@@ -396,7 +374,6 @@ export default function Upload() {
                     className="aspect-square overflow-hidden cursor-pointer" 
                     onClick={() => {
                       setPreviewUrl(media);
-                      // In a real app, we would create a File object here
                     }}
                   >
                     <img 
@@ -409,7 +386,6 @@ export default function Upload() {
               </div>
             </div>
             
-            {/* Content type selector */}
             <div className="bg-black text-white p-4 flex justify-around border-t border-white/10">
               <button 
                 className={`uppercase font-semibold ${selectedType === 'post' ? 'text-white' : 'text-white/50'}`}
@@ -442,7 +418,6 @@ export default function Upload() {
     );
   };
   
-  // Hidden file input for native file selection
   const renderHiddenFileInput = () => (
     <input
       type="file"
