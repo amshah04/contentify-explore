@@ -10,7 +10,8 @@ import {
   Play, 
   X,
   ChevronDown,
-  Camera
+  Camera,
+  ImagePlus
 } from "lucide-react";
 import { 
   Dialog,
@@ -150,8 +151,6 @@ export default function Upload() {
     
     if (type === "live") {
       startCamera();
-    } else if (type === "post" || type === "story") {
-      setIsMediaPickerOpen(true);
     } else {
       setIsMediaPickerOpen(true);
     }
@@ -200,6 +199,12 @@ export default function Upload() {
   const handleCameraButton = () => {
     startCamera();
     setIsMediaPickerOpen(false);
+  };
+  
+  const openGallery = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
   
   const handleClose = () => {
@@ -275,12 +280,23 @@ export default function Upload() {
   };
   
   const renderUploadButton = () => (
-    <Button 
-      onClick={() => setIsMediaPickerOpen(true)} 
-      className="rounded-full p-8 flex items-center justify-center"
-    >
-      <Camera className="h-8 w-8" />
-    </Button>
+    <div className="flex flex-col gap-4 items-center">
+      <Button 
+        onClick={() => setIsMediaPickerOpen(true)} 
+        className="rounded-full p-8 flex items-center justify-center"
+      >
+        <Camera className="h-8 w-8" />
+      </Button>
+      
+      <Button
+        onClick={openGallery}
+        variant="outline"
+        className="rounded-full flex items-center gap-2"
+      >
+        <ImagePlus className="h-5 w-5" />
+        <span>Gallery</span>
+      </Button>
+    </div>
   );
   
   const renderMediaPicker = () => {
@@ -364,6 +380,9 @@ export default function Upload() {
                   <Button variant="outline" className="text-white border-white/20 bg-white/10 rounded-full p-2" onClick={handleCameraButton}>
                     <Camera className="h-5 w-5" />
                   </Button>
+                  <Button variant="outline" className="text-white border-white/20 bg-white/10 rounded-full p-2" onClick={openGallery}>
+                    <Image className="h-5 w-5" />
+                  </Button>
                 </div>
               </div>
               
@@ -404,6 +423,12 @@ export default function Upload() {
                 onClick={() => handleUploadTypeSelect('reel')}
               >
                 Reel
+              </button>
+              <button 
+                className={`uppercase font-semibold ${selectedType === 'video' ? 'text-white' : 'text-white/50'}`}
+                onClick={() => handleUploadTypeSelect('video')}
+              >
+                Video
               </button>
               <button 
                 className={`uppercase font-semibold ${selectedType === 'live' ? 'text-white' : 'text-white/50'}`}
