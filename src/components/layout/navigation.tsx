@@ -30,7 +30,7 @@ export function Navigation({ className }: { className?: string }) {
       <div className="hidden md:flex md:flex-col md:items-center md:gap-2 md:p-4">
         <div className="mb-6 flex items-center">
           <Link to="/">
-            <h1 className="text-3xl font-bold social-text-gradient">Social</h1>
+            <h1 className="text-3xl font-bold social-text-gradient">SocialNest</h1>
           </Link>
         </div>
         <div className="flex flex-col gap-2">

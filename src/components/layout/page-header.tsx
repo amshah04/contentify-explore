@@ -7,7 +7,7 @@ export function PageHeader() {
   return (
     <div className="sticky top-0 z-30 flex items-center justify-between border-b bg-background/95 px-4 py-3 backdrop-blur md:px-6">
       <Link to="/" className="text-xl font-bold social-text-gradient">
-        Social
+        SocialNest
       </Link>
       <div className="flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
