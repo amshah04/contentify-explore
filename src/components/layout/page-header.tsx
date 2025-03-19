@@ -1,5 +1,5 @@
 
-import { Search, MessageCircle, Bell } from "lucide-react";
+import { MessageCircle, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
 
@@ -10,12 +10,6 @@ export function PageHeader() {
         Social
       </Link>
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" asChild>
-          <Link to="/search">
-            <Search className="h-5 w-5" />
-            <span className="sr-only">Search</span>
-          </Link>
-        </Button>
         <Button variant="ghost" size="icon" asChild>
           <Link to="/notifications">
             <Bell className="h-5 w-5" />
