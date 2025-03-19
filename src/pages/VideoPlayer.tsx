@@ -24,6 +24,7 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useInteractions } from "@/hooks/use-interactions";
 import { useAuth } from "@/contexts/AuthContext";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
 // Sample video data
 const sampleVideos = [
@@ -124,6 +125,7 @@ export default function VideoPlayer() {
   const [currentVideo, setCurrentVideo] = useState<any>(null);
   const [relatedVideos, setRelatedVideos] = useState<any[]>([]);
   const [showDescription, setShowDescription] = useState(false);
+  const [showAllComments, setShowAllComments] = useState(false);
   
   // Find current video and related videos
   useEffect(() => {
@@ -227,7 +229,30 @@ export default function VideoPlayer() {
           </div>
           
           <div className="px-4 md:px-0 space-y-4">
-            <h1 className="text-xl font-bold md:text-2xl">{currentVideo.title}</h1>
+            <div className="space-y-3">
+              <h1 className="text-xl font-bold md:text-2xl">{currentVideo.title}</h1>
+              
+              {/* Description (moved above channel info) */}
+              <div className="rounded-lg bg-muted p-4">
+                <div 
+                  className="flex items-center justify-between cursor-pointer" 
+                  onClick={() => setShowDescription(!showDescription)}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>{currentVideo.views} views • {currentVideo.timeAgo}</span>
+                  </div>
+                  <Button variant="ghost" size="icon">
+                    {showDescription ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                  </Button>
+                </div>
+                
+                {showDescription && (
+                  <p className="mt-2 whitespace-pre-line">
+                    {currentVideo.description || "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!"}
+                  </p>
+                )}
+              </div>
+            </div>
             
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
@@ -290,54 +315,75 @@ export default function VideoPlayer() {
               </div>
             </div>
             
-            <div className="rounded-lg bg-muted p-4">
-              <div 
-                className="flex items-center justify-between cursor-pointer" 
-                onClick={() => setShowDescription(!showDescription)}
-              >
-                <div className="flex items-center gap-2">
-                  <span>{currentVideo.views} views • {currentVideo.timeAgo}</span>
-                </div>
-                <Button variant="ghost" size="icon">
-                  {showDescription ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-              </div>
-              
-              {showDescription && (
-                <p className="mt-2 whitespace-pre-line">
-                  {currentVideo.description || "In this tutorial, I show you step by step how to create stunning digital art using various techniques and tools. Perfect for beginners and intermediate artists looking to improve their skills.\n\nTimestamps:\n00:00 Introduction\n01:25 Setting up your workspace\n03:45 Basic techniques\n08:30 Color theory\n12:15 Advanced effects\n\nTools used in this tutorial:\n- Adobe Photoshop\n- Wacom tablet\n- Custom brushes (link in description)\n\nFollow me for more tutorials and tips on digital art creation!"}
-                </p>
-              )}
-            </div>
-            
-            {/* Comments section */}
+            {/* Comments section with collapsible */}
             <div className="space-y-4 mt-6">
               <h2 className="text-lg font-semibold">{comments.length} Comments</h2>
               
-              {comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
+              {/* Always show the first comment */}
+              {comments.length > 0 && (
+                <div className="flex gap-3">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={comment.avatar} alt={comment.username} />
-                    <AvatarFallback>{comment.username[0]}</AvatarFallback>
+                    <AvatarImage src={comments[0].avatar} alt={comments[0].username} />
+                    <AvatarFallback>{comments[0].username[0]}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium">{comment.username}</span>
-                      <span className="text-xs text-muted-foreground">{comment.timeAgo}</span>
+                      <span className="font-medium">{comments[0].username}</span>
+                      <span className="text-xs text-muted-foreground">{comments[0].timeAgo}</span>
                     </div>
-                    <p className="mt-1">{comment.comment}</p>
+                    <p className="mt-1">{comments[0].comment}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <ThumbsUp className="h-4 w-4" />
                       </Button>
-                      <span className="text-xs">{comment.likes}</span>
+                      <span className="text-xs">{comments[0].likes}</span>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
                         <MessageCircle className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
                 </div>
-              ))}
+              )}
+              
+              {/* Collapsible section for remaining comments */}
+              {comments.length > 1 && (
+                <Collapsible open={showAllComments} onOpenChange={setShowAllComments}>
+                  <CollapsibleTrigger asChild>
+                    <Button variant="ghost" className="flex items-center gap-2">
+                      <MoreHorizontal className="h-4 w-4" />
+                      <span>{showAllComments ? "Hide comments" : "View more comments"}</span>
+                    </Button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div className="space-y-4 pt-2">
+                      {comments.slice(1).map((comment) => (
+                        <div key={comment.id} className="flex gap-3">
+                          <Avatar className="h-8 w-8">
+                            <AvatarImage src={comment.avatar} alt={comment.username} />
+                            <AvatarFallback>{comment.username[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{comment.username}</span>
+                              <span className="text-xs text-muted-foreground">{comment.timeAgo}</span>
+                            </div>
+                            <p className="mt-1">{comment.comment}</p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <ThumbsUp className="h-4 w-4" />
+                              </Button>
+                              <span className="text-xs">{comment.likes}</span>
+                              <Button variant="ghost" size="icon" className="h-8 w-8">
+                                <MessageCircle className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CollapsibleContent>
+                </Collapsible>
+              )}
             </div>
           </div>
         </div>
