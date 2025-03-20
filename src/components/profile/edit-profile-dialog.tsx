@@ -27,7 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Camera, Loader2 } from "lucide-react";
+import { ArrowLeft, Camera, Loader2 } from "lucide-react";
 
 const profileFormSchema = z.object({
   name: z.string().min(1, "Display name is required"),
@@ -141,7 +141,15 @@ export function EditProfileDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
+        <DialogHeader className="flex flex-row items-center">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="mr-2" 
+            onClick={() => onOpenChange(false)}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
         
