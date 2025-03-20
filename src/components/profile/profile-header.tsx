@@ -1,9 +1,11 @@
 
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Settings, MoreHorizontal } from "lucide-react";
+import { EditProfileDialog } from "./edit-profile-dialog";
 
 interface ProfileHeaderProps {
   username: string;
@@ -26,6 +28,8 @@ export function ProfileHeader({
   followingCount,
   isCurrentUser = true,
 }: ProfileHeaderProps) {
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -41,7 +45,7 @@ export function ProfileHeader({
         </div>
         {isCurrentUser ? (
           <div className="flex gap-2">
-            <Button variant="outline">Edit Profile</Button>
+            <Button variant="outline" onClick={() => setEditProfileOpen(true)}>Edit Profile</Button>
             <Button size="icon" variant="ghost">
               <Settings className="h-5 w-5" />
             </Button>
@@ -93,6 +97,19 @@ export function ProfileHeader({
           <TabsTrigger value="tagged" className="flex-1">Tagged</TabsTrigger>
         </TabsList>
       </Tabs>
+
+      {isCurrentUser && (
+        <EditProfileDialog
+          open={editProfileOpen}
+          onOpenChange={setEditProfileOpen}
+          currentProfile={{
+            name,
+            username,
+            bio,
+            avatar
+          }}
+        />
+      )}
     </div>
   );
 }
