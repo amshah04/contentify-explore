@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Settings, MoreHorizontal } from "lucide-react";
 import { EditProfileDialog } from "./edit-profile-dialog";
@@ -88,15 +87,6 @@ export function ProfileHeader({
       <div>
         <p className="font-medium">{bio}</p>
       </div>
-
-      <Tabs defaultValue="posts" className="w-full">
-        <TabsList className="w-full">
-          <TabsTrigger value="posts" className="flex-1">Posts</TabsTrigger>
-          <TabsTrigger value="reels" className="flex-1">Reels</TabsTrigger>
-          <TabsTrigger value="saved" className="flex-1">Saved</TabsTrigger>
-          <TabsTrigger value="tagged" className="flex-1">Tagged</TabsTrigger>
-        </TabsList>
-      </Tabs>
 
       {isCurrentUser && (
         <EditProfileDialog
