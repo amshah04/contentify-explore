@@ -15,6 +15,10 @@ interface ProfileHeaderProps {
   followersCount: number;
   followingCount: number;
   isCurrentUser?: boolean;
+  onEditProfile?: () => void;
+  onSettingsClick?: () => void;
+  editProfileOpen?: boolean;
+  setEditProfileOpen?: (open: boolean) => void;
 }
 
 export function ProfileHeader({
@@ -26,8 +30,32 @@ export function ProfileHeader({
   followersCount,
   followingCount,
   isCurrentUser = true,
+  onEditProfile,
+  onSettingsClick,
+  editProfileOpen = false,
+  setEditProfileOpen,
 }: ProfileHeaderProps) {
-  const [editProfileOpen, setEditProfileOpen] = useState(false);
+  // Use local state if no external state is provided
+  const [localEditProfileOpen, setLocalEditProfileOpen] = useState(false);
+  
+  // Determine which state to use
+  const isDialogOpen = editProfileOpen !== undefined ? editProfileOpen : localEditProfileOpen;
+  const setIsDialogOpen = setEditProfileOpen || setLocalEditProfileOpen;
+  
+  // Handlers
+  const handleEditProfile = () => {
+    if (onEditProfile) {
+      onEditProfile();
+    } else {
+      setIsDialogOpen(true);
+    }
+  };
+  
+  const handleSettingsClick = () => {
+    if (onSettingsClick) {
+      onSettingsClick();
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -44,8 +72,8 @@ export function ProfileHeader({
         </div>
         {isCurrentUser ? (
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditProfileOpen(true)}>Edit Profile</Button>
-            <Button size="icon" variant="ghost">
+            <Button onClick={handleEditProfile}>Edit Profile</Button>
+            <Button size="icon" variant="ghost" onClick={handleSettingsClick}>
               <Settings className="h-5 w-5" />
             </Button>
           </div>
@@ -90,8 +118,8 @@ export function ProfileHeader({
 
       {isCurrentUser && (
         <EditProfileDialog
-          open={editProfileOpen}
-          onOpenChange={setEditProfileOpen}
+          open={isDialogOpen}
+          onOpenChange={setIsDialogOpen}
           currentProfile={{
             name,
             username,

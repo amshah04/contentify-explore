@@ -17,7 +17,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { VideosContainer } from "@/components/videos/videos-container";
 import { ProfileGrid } from "@/components/profile/profile-grid";
 
-// Dummy profile data as fallback
 const fallbackProfileData = {
   username: "user",
   name: "User",
@@ -29,7 +28,6 @@ const fallbackProfileData = {
   isCurrentUser: true,
 };
 
-// Dummy grid items for different tabs
 const postItems = [
   {
     id: "1",
@@ -112,8 +110,8 @@ const videoItems = [
 export default function Profile() {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("posts");
+  const [editProfileOpen, setEditProfileOpen] = useState(false);
   
-  // Use the user's actual profile data if available
   const profileData = {
     username: profile?.username || fallbackProfileData.username,
     name: profile?.display_name || profile?.username || fallbackProfileData.name,
@@ -147,6 +145,13 @@ export default function Profile() {
     });
   };
 
+  const handleSettingsClick = () => {
+    toast({
+      title: "Settings",
+      description: "Settings panel would open here",
+    });
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4">
@@ -159,6 +164,10 @@ export default function Profile() {
           followersCount={profileData.followersCount}
           followingCount={profileData.followingCount}
           isCurrentUser={profileData.isCurrentUser}
+          onEditProfile={() => setEditProfileOpen(true)}
+          onSettingsClick={handleSettingsClick}
+          editProfileOpen={editProfileOpen}
+          setEditProfileOpen={setEditProfileOpen}
         />
         
         <Tabs 
