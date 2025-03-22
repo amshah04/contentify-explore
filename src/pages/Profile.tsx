@@ -175,10 +175,25 @@ export default function Profile() {
           onValueChange={setActiveTab} 
           className="w-full mt-6"
         >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="reels">Reels</TabsTrigger>
-            <TabsTrigger value="videos">Videos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-3 bg-secondary/60 p-1.5">
+            <TabsTrigger 
+              value="posts" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-purple data-[state=active]:to-social-blue data-[state=active]:text-white transition-all duration-300"
+            >
+              Posts
+            </TabsTrigger>
+            <TabsTrigger 
+              value="reels" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-blue data-[state=active]:to-social-pink data-[state=active]:text-white transition-all duration-300"
+            >
+              Reels
+            </TabsTrigger>
+            <TabsTrigger 
+              value="videos" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-pink data-[state=active]:to-social-purple data-[state=active]:text-white transition-all duration-300"
+            >
+              Videos
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="posts" className="mt-6">
