@@ -20,16 +20,16 @@ export default function Home() {
             onValueChange={(value) => setActiveTab(value as "feeds" | "videos")}
             className="w-full"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-secondary/60 p-1.5">
+            <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1.5">
               <TabsTrigger 
                 value="feeds" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-purple data-[state=active]:to-social-blue data-[state=active]:text-white"
+                className="bg-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-purple data-[state=active]:to-social-blue data-[state=active]:text-white"
               >
                 Feeds
               </TabsTrigger>
               <TabsTrigger 
                 value="videos" 
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-blue data-[state=active]:to-social-pink data-[state=active]:text-white"
+                className="bg-gray-200 data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-blue data-[state=active]:to-social-pink data-[state=active]:text-white"
               >
                 Videos
               </TabsTrigger>
