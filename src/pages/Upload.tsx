@@ -1,3 +1,4 @@
+
 import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/layout/layout";
 import { Button } from "@/components/ui/button";
@@ -33,6 +34,7 @@ import { useUpload } from "@/hooks/use-upload";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 type UploadType = "post" | "story" | "reel" | "video" | "live";
 
@@ -279,22 +281,59 @@ export default function Upload() {
     }
   };
   
-  const renderUploadButton = () => (
-    <div className="flex flex-col gap-4 items-center">
-      <Button 
-        onClick={() => setIsMediaPickerOpen(true)} 
-        className="rounded-full p-8 flex items-center justify-center"
-      >
-        <Camera className="h-8 w-8" />
-      </Button>
+  // New upload selection screen
+  const renderUploadOptions = () => (
+    <div className="flex flex-col gap-8 items-center justify-center w-full max-w-md mx-auto p-6">
+      <h2 className="text-2xl font-bold mb-6">Create New</h2>
+      
+      <div className="grid grid-cols-2 gap-4 w-full">
+        <Button
+          onClick={() => handleUploadTypeSelect('post')}
+          variant="outline"
+          className="flex flex-col items-center gap-3 p-6 h-auto border-2 hover:border-social-purple hover:bg-social-purple/10"
+        >
+          <Image className="h-10 w-10" />
+          <span className="text-lg font-medium">Post</span>
+        </Button>
+        
+        <Button
+          onClick={() => handleUploadTypeSelect('story')}
+          variant="outline"
+          className="flex flex-col items-center gap-3 p-6 h-auto border-2 hover:border-social-blue hover:bg-social-blue/10"
+        >
+          <div className="relative">
+            <Image className="h-10 w-10" />
+            <div className="absolute -top-1 -right-1 bg-social-blue text-white rounded-full w-5 h-5 flex items-center justify-center text-xs">+</div>
+          </div>
+          <span className="text-lg font-medium">Story</span>
+        </Button>
+        
+        <Button
+          onClick={() => handleUploadTypeSelect('reel')}
+          variant="outline"
+          className="flex flex-col items-center gap-3 p-6 h-auto border-2 hover:border-social-pink hover:bg-social-pink/10"
+        >
+          <Play className="h-10 w-10" />
+          <span className="text-lg font-medium">Reel</span>
+        </Button>
+        
+        <Button
+          onClick={() => handleUploadTypeSelect('video')}
+          variant="outline"
+          className="flex flex-col items-center gap-3 p-6 h-auto border-2 hover:border-social-purple hover:bg-social-purple/10"
+        >
+          <Film className="h-10 w-10" />
+          <span className="text-lg font-medium">Video</span>
+        </Button>
+      </div>
       
       <Button
-        onClick={openGallery}
+        onClick={() => handleUploadTypeSelect('live')}
         variant="outline"
-        className="rounded-full flex items-center gap-2"
+        className="flex items-center gap-3 px-8 py-4 h-auto border-2 hover:border-red-500 hover:bg-red-500/10 w-full mt-4"
       >
-        <ImagePlus className="h-5 w-5" />
-        <span>Gallery</span>
+        <Video className="h-6 w-6 text-red-500" />
+        <span className="text-lg font-medium">Go Live</span>
       </Button>
     </div>
   );
@@ -314,7 +353,7 @@ export default function Upload() {
                   <X className="h-5 w-5" />
                 </Button>
               </CloseComponent>
-              <h2 className="text-xl font-semibold">New post</h2>
+              <h2 className="text-xl font-semibold">New {selectedType}</h2>
               <Button variant="ghost" className="text-blue-500 font-semibold" onClick={handleUpload}>
                 Next
               </Button>
@@ -404,39 +443,6 @@ export default function Upload() {
                 ))}
               </div>
             </div>
-            
-            <div className="bg-black text-white p-4 flex justify-around border-t border-white/10">
-              <button 
-                className={`uppercase font-semibold ${selectedType === 'post' ? 'text-white' : 'text-white/50'}`}
-                onClick={() => handleUploadTypeSelect('post')}
-              >
-                Post
-              </button>
-              <button 
-                className={`uppercase font-semibold ${selectedType === 'story' ? 'text-white' : 'text-white/50'}`}
-                onClick={() => handleUploadTypeSelect('story')}
-              >
-                Story
-              </button>
-              <button 
-                className={`uppercase font-semibold ${selectedType === 'reel' ? 'text-white' : 'text-white/50'}`}
-                onClick={() => handleUploadTypeSelect('reel')}
-              >
-                Reel
-              </button>
-              <button 
-                className={`uppercase font-semibold ${selectedType === 'video' ? 'text-white' : 'text-white/50'}`}
-                onClick={() => handleUploadTypeSelect('video')}
-              >
-                Video
-              </button>
-              <button 
-                className={`uppercase font-semibold ${selectedType === 'live' ? 'text-white' : 'text-white/50'}`}
-                onClick={() => handleUploadTypeSelect('live')}
-              >
-                Live
-              </button>
-            </div>
           </div>
         </ContentComponent>
       </Component>
@@ -460,8 +466,7 @@ export default function Upload() {
   return (
     <Layout>
       <div className="flex items-center justify-center h-[calc(100vh-60px)]">
-        {renderUploadButton()}
-        {renderMediaPicker()}
+        {selectedType ? renderMediaPicker() : renderUploadOptions()}
         {renderHiddenFileInput()}
       </div>
     </Layout>
