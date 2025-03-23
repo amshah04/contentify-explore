@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { 
   Carousel, 
@@ -6,7 +7,7 @@ import {
   CarouselNext, 
   CarouselPrevious 
 } from "@/components/ui/carousel";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Bookmark, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
@@ -78,30 +79,34 @@ export function ProfileStories({ stories, isCurrentUser = true }: ProfileStories
         <Carousel className="w-full">
           <CarouselContent>
             {stories.map((story) => (
-              <CarouselItem key={story.id} className="basis-1/4 min-w-[120px]">
-                <div className="relative story-ring p-[2px]">
-                  <Avatar className="w-20 h-20 border-4 border-transparent">
-                    <AvatarImage 
+              <CarouselItem key={story.id} className="basis-1/5 min-w-[100px]">
+                <Card className="relative overflow-hidden rounded-md aspect-square">
+                  <div className="absolute inset-0">
+                    <img 
                       src={story.thumbnail} 
                       alt="Story thumbnail" 
-                      className="object-cover w-full h-full"
+                      className="h-full w-full object-cover"
                     />
-                  </Avatar>
-                  <Button 
-                    variant="ghost" 
-                    size="icon" 
-                    className="absolute top-1 right-1 h-6 w-6 bg-black/40 text-white hover:bg-black/60 hover:text-white"
-                    onClick={() => toggleSaveStory(story.id)}
-                  >
-                    <Bookmark 
-                      className="h-3 w-3" 
-                      fill={savedStories[story.id] ? "currentColor" : "none"}
-                    />
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-1 text-center">
-                    {story.date}
-                  </p>
-                </div>
+                  </div>
+                  <div className="absolute top-2 right-2">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-6 w-6 bg-black/40 text-white hover:bg-black/60 hover:text-white"
+                      onClick={() => toggleSaveStory(story.id)}
+                    >
+                      <Bookmark 
+                        className="h-3 w-3" 
+                        fill={savedStories[story.id] ? "currentColor" : "none"}
+                      />
+                    </Button>
+                  </div>
+                  <div className="absolute bottom-2 left-2">
+                    <p className="text-xs text-white font-medium bg-black/40 px-2 py-1 rounded">
+                      {story.date}
+                    </p>
+                  </div>
+                </Card>
               </CarouselItem>
             ))}
           </CarouselContent>
