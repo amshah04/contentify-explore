@@ -13,9 +13,9 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { Settings, Share2 } from "lucide-react";
 import { ProfileHeader } from "@/components/profile/profile-header";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VideosContainer } from "@/components/videos/videos-container";
+import { ProfileStories } from "@/components/profile/profile-stories";
 import { ProfileGrid } from "@/components/profile/profile-grid";
+import { VideosContainer } from "@/components/videos/videos-container";
 
 const fallbackProfileData = {
   username: "user",
@@ -27,6 +27,34 @@ const fallbackProfileData = {
   followingCount: 0,
   isCurrentUser: true,
 };
+
+const userStories = [
+  {
+    id: "1",
+    thumbnail: "https://images.unsplash.com/photo-1506744038136-46273834b3fb",
+    date: "Today",
+  },
+  {
+    id: "2",
+    thumbnail: "https://images.unsplash.com/photo-1501785888041-af3ef285b470",
+    date: "Yesterday",
+  },
+  {
+    id: "3",
+    thumbnail: "https://images.unsplash.com/photo-1618605588556-c887188781cc",
+    date: "2d ago",
+  },
+  {
+    id: "4",
+    thumbnail: "https://images.unsplash.com/photo-1534270804882-6b5048b1c1fc",
+    date: "5d ago",
+  },
+  {
+    id: "5",
+    thumbnail: "https://images.unsplash.com/photo-1543363950-2a8a60fe7a68",
+    date: "1w ago",
+  },
+];
 
 const postItems = [
   {
@@ -168,12 +196,19 @@ export default function Profile() {
           onSettingsClick={handleSettingsClick}
           editProfileOpen={editProfileOpen}
           setEditProfileOpen={setEditProfileOpen}
+          onFollowersClick={handleFollowersClick}
+          onFollowingClick={handleFollowingClick}
+        />
+        
+        <ProfileStories 
+          stories={userStories} 
+          isCurrentUser={profileData.isCurrentUser} 
         />
         
         <Tabs 
           value={activeTab} 
           onValueChange={setActiveTab} 
-          className="w-full mt-6"
+          className="w-full"
         >
           <TabsList className="grid w-full grid-cols-3 bg-secondary/60 p-1.5">
             <TabsTrigger 

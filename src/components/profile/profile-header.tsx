@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Settings, MoreHorizontal } from "lucide-react";
+import { Settings, MoreHorizontal, Bookmark } from "lucide-react";
 import { EditProfileDialog } from "./edit-profile-dialog";
 
 interface ProfileHeaderProps {
@@ -19,6 +19,8 @@ interface ProfileHeaderProps {
   onSettingsClick?: () => void;
   editProfileOpen?: boolean;
   setEditProfileOpen?: (open: boolean) => void;
+  onFollowersClick?: () => void;
+  onFollowingClick?: () => void;
 }
 
 export function ProfileHeader({
@@ -34,6 +36,8 @@ export function ProfileHeader({
   onSettingsClick,
   editProfileOpen = false,
   setEditProfileOpen,
+  onFollowersClick,
+  onFollowingClick,
 }: ProfileHeaderProps) {
   // Use local state if no external state is provided
   const [localEditProfileOpen, setLocalEditProfileOpen] = useState(false);
@@ -60,16 +64,35 @@ export function ProfileHeader({
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
-        <div className="flex items-center gap-6">
+        <div className="flex gap-6">
           <Avatar className="h-20 w-20 border-4 border-background">
             <AvatarImage src={avatar} alt={username} />
             <AvatarFallback>{name[0]}</AvatarFallback>
           </Avatar>
-          <div>
-            <h1 className="text-2xl font-bold">{name}</h1>
-            <p className="text-muted-foreground">@{username}</p>
+          
+          <div className="flex flex-col justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">{name}</h1>
+              <p className="text-muted-foreground">@{username}</p>
+            </div>
+            
+            <div className="flex gap-8 mt-2">
+              <div className="text-center cursor-pointer" onClick={() => postsCount > 0 && null}>
+                <p className="font-bold">{postsCount}</p>
+                <p className="text-sm text-muted-foreground">Posts</p>
+              </div>
+              <div className="text-center cursor-pointer" onClick={onFollowersClick}>
+                <p className="font-bold">{followersCount}</p>
+                <p className="text-sm text-muted-foreground">Followers</p>
+              </div>
+              <div className="text-center cursor-pointer" onClick={onFollowingClick}>
+                <p className="font-bold">{followingCount}</p>
+                <p className="text-sm text-muted-foreground">Following</p>
+              </div>
+            </div>
           </div>
         </div>
+        
         {isCurrentUser ? (
           <div className="flex gap-2">
             <Button onClick={handleEditProfile}>Edit Profile</Button>
@@ -95,21 +118,6 @@ export function ProfileHeader({
             </DropdownMenu>
           </div>
         )}
-      </div>
-
-      <div className="flex gap-6">
-        <div className="text-center">
-          <p className="font-bold">{postsCount}</p>
-          <p className="text-sm text-muted-foreground">Posts</p>
-        </div>
-        <div className="text-center">
-          <p className="font-bold">{followersCount}</p>
-          <p className="text-sm text-muted-foreground">Followers</p>
-        </div>
-        <div className="text-center">
-          <p className="font-bold">{followingCount}</p>
-          <p className="text-sm text-muted-foreground">Following</p>
-        </div>
       </div>
 
       <div>
