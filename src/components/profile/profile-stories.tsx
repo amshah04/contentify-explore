@@ -79,7 +79,7 @@ export function ProfileStories({ stories, isCurrentUser = true }: ProfileStories
         <Carousel className="w-full">
           <CarouselContent>
             {stories.map((story) => (
-              <CarouselItem key={story.id} className="basis-1/5 min-w-[100px]">
+              <CarouselItem key={story.id} className="basis-1/6 min-w-[80px]">
                 <Card className="relative overflow-hidden rounded-md aspect-square">
                   <div className="absolute inset-0">
                     <img 
@@ -88,21 +88,21 @@ export function ProfileStories({ stories, isCurrentUser = true }: ProfileStories
                       className="h-full w-full object-cover"
                     />
                   </div>
-                  <div className="absolute top-2 right-2">
+                  <div className="absolute top-1 right-1">
                     <Button 
                       variant="ghost" 
                       size="icon" 
-                      className="h-6 w-6 bg-black/40 text-white hover:bg-black/60 hover:text-white"
+                      className="h-5 w-5 bg-black/40 text-white hover:bg-black/60 hover:text-white p-0.5"
                       onClick={() => toggleSaveStory(story.id)}
                     >
                       <Bookmark 
-                        className="h-3 w-3" 
+                        className="h-2.5 w-2.5" 
                         fill={savedStories[story.id] ? "currentColor" : "none"}
                       />
                     </Button>
                   </div>
-                  <div className="absolute bottom-2 left-2">
-                    <p className="text-xs text-white font-medium bg-black/40 px-2 py-1 rounded">
+                  <div className="absolute bottom-1 left-1">
+                    <p className="text-[10px] text-white font-medium bg-black/40 px-1.5 py-0.5 rounded">
                       {story.date}
                     </p>
                   </div>
