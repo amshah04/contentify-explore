@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Layout } from "@/components/layout/layout";
@@ -205,44 +206,46 @@ export default function Profile() {
           isCurrentUser={profileData.isCurrentUser} 
         />
         
-        <Tabs 
-          value={activeTab} 
-          onValueChange={setActiveTab} 
-          className="w-full"
-        >
-          <TabsList className="grid w-full grid-cols-3 bg-secondary/60 p-1.5">
-            <TabsTrigger 
-              value="posts" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-purple data-[state=active]:to-social-blue data-[state=active]:text-white transition-all duration-300"
-            >
-              Posts
-            </TabsTrigger>
-            <TabsTrigger 
-              value="reels" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-blue data-[state=active]:to-social-pink data-[state=active]:text-white transition-all duration-300"
-            >
-              Reels
-            </TabsTrigger>
-            <TabsTrigger 
-              value="videos" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-pink data-[state=active]:to-social-purple data-[state=active]:text-white transition-all duration-300"
-            >
-              Videos
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="posts" className="mt-6">
-            <ProfileGrid items={postItems} />
-          </TabsContent>
-          
-          <TabsContent value="reels" className="mt-6">
-            <ProfileGrid items={reelsItems} />
-          </TabsContent>
-          
-          <TabsContent value="videos" className="mt-6">
-            <VideosContainer />
-          </TabsContent>
-        </Tabs>
+        <div className="bg-gray-100 rounded-xl p-4 shadow-sm border border-gray-200">
+          <Tabs 
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-3 bg-gray-200/80 p-1.5 rounded-lg">
+              <TabsTrigger 
+                value="posts" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-purple data-[state=active]:to-social-blue data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
+              >
+                Posts
+              </TabsTrigger>
+              <TabsTrigger 
+                value="reels" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-blue data-[state=active]:to-social-pink data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
+              >
+                Reels
+              </TabsTrigger>
+              <TabsTrigger 
+                value="videos" 
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-social-pink data-[state=active]:to-orange-400 data-[state=active]:text-white data-[state=active]:shadow-md transition-all duration-300"
+              >
+                Videos
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="posts" className="mt-6">
+              <ProfileGrid items={postItems} />
+            </TabsContent>
+            
+            <TabsContent value="reels" className="mt-6">
+              <ProfileGrid items={reelsItems} />
+            </TabsContent>
+            
+            <TabsContent value="videos" className="mt-6">
+              <VideosContainer />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </Layout>
   );
